@@ -23,7 +23,9 @@ First public release.
 
 ### Benchmark receipts
 
-- W3Schools 40-question HTML quiz (Anthropic Claude Haiku 4.5): **40 / 40** in 4m44s, **$0.31**.
+- W3Schools 40-question HTML quiz, **CLI** (Haiku 4.5): **40 / 40** in 4m44s, **$0.31**.
+- W3Schools 40-question HTML quiz, **loaded extension via `chrome.debugger`** (Haiku 4.5): **39 / 40** in 6m50s, **$0.42**.
+  Validates the full production path (SW → ChromeDebuggerDriver → real LLM → real browser) end-to-end.
 - Hacker News top story extraction: 1 step, 2.1s, $0.006.
 - Random Wikipedia article + first sentence: 1 step, 4.2s, $0.003.
 - arXiv paper title: 1 step, 1.3s, $0.003.

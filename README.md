@@ -29,7 +29,8 @@ sites. fast-browser was rebuilt from the ground up around three priorities:
 
 | Benchmark | Result |
 |---|---|
-| **W3Schools 40-question HTML quiz** (Haiku 4.5) | 40 / 40, 4m44s, $0.31 |
+| **W3Schools 40-question HTML quiz**, CLI (Haiku 4.5) | 40 / 40, 4m44s, $0.31 |
+| **W3Schools 40-question HTML quiz**, **loaded extension via `chrome.debugger`** (Haiku 4.5) | 39 / 40, 6m50s, $0.42 |
 | Same quiz on the predecessor (browser-use-style baseline) | 0 / 20, 14m32s |
 | Hacker News top story extraction (Haiku 4.5) | 1 step, 2.1s, $0.006 |
 | Random Wikipedia article + first sentence (Haiku 4.5) | 1 step, 4.2s, $0.003 |

@@ -1,0 +1,47 @@
+{
+  "name": "w3schools-html-quiz",
+  "transport": "chrome.debugger (loaded extension via Playwright)",
+  "model": "anthropic:claude-haiku-4-5",
+  "agent": "fast-browser v0.0.1",
+  "date": "2026-05-16",
+  "url": "https://www.w3schools.com/quiztest/quiztest.asp?qtest=HTML",
+  "success": true,
+  "score": "39/40 (97%)",
+  "steps": 121,
+  "maxSteps": 130,
+  "wallMs": 410449,
+  "wallHuman": "6m50s",
+  "costUsdEstimate": 0.4159,
+  "exitReason": "done",
+  "finalResult": "You answered 39 out of 40 questions correctly (97%)",
+  "comparedTo": {
+    "cliSameTaskSameModel": {
+      "score": "40/40",
+      "wallMs": 282927,
+      "wallHuman": "4m44s",
+      "costUsd": 0.3146
+    },
+    "transportOverhead": {
+      "wallMsDelta": 127522,
+      "wallPercentDelta": "+45%",
+      "costDelta": 0.1013,
+      "costPercentDelta": "+32%",
+      "note": "chrome.debugger transport adds per-CDP-command latency vs direct WebSocket; 1 extra step + occasional anthropic 429 retry waits explain the cost delta"
+    },
+    "predecessorLocalBrowser": {
+      "score": "0/20",
+      "wallMs": 872000,
+      "wallHuman": "14m32s",
+      "note": "stuck in cookie-banner loop, never advanced"
+    }
+  },
+  "validates": [
+    "loaded MV3 extension boots and SW exposes core agent surface",
+    "chrome.debugger.attach succeeds against arbitrary user tab",
+    "ChromeDebuggerDriver implements BrowserDriver correctly via chrome.debugger.sendCommand",
+    "viewport-filtered AxTree produces actionable elements through chrome.debugger transport",
+    "AnthropicProvider with anthropic-dangerous-direct-browser-access header works from MV3 SW context",
+    "agent loop runs to completion with real-LLM real-page real-network for 6+ minutes without crashing",
+    "trajectory correctly captures each step (recordedSteps == steps == 121)"
+  ]
+}
