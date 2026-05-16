@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+.env.local
+packages/bench/results/*.jsonl
+packages/bench/results/*.json
+!packages/bench/results/*-baseline.json
+.wxt/
+.output/
+coverage/
