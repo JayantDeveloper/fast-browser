@@ -2,8 +2,9 @@
 
 > A local AI agent that completes tasks in your active Chrome tab. Bring your own Anthropic / Gemini / OpenRouter API key — no server.
 
+[![CI](https://github.com/JayantDeveloper/fast-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/JayantDeveloper/fast-browser/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-85%20passing-brightgreen.svg)](#testing)
+[![Latest release](https://img.shields.io/github/v/release/JayantDeveloper/fast-browser)](https://github.com/JayantDeveloper/fast-browser/releases/latest)
 
 ## Why
 
