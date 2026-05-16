@@ -34,3 +34,10 @@ export type {
   DoneAction,
 } from "./actions/vocabulary.js";
 export { execute } from "./actions/executor.js";
+
+export type { Provider, AskJsonOpts, AskJsonResult, Usage } from "./llm/types.js";
+export { LlmError } from "./llm/types.js";
+export { safeParseJson } from "./llm/safe-parse.js";
+export { GeminiProvider, type GeminiProviderOpts } from "./llm/providers/gemini.js";
+export { OpenRouterProvider, type OpenRouterProviderOpts } from "./llm/providers/openrouter.js";
+export { ACTION_SCHEMA, SYSTEM_PROMPT, buildUserPrompt, actionToJson } from "./llm/prompts.js";
