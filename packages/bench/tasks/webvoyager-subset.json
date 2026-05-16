@@ -1,0 +1,32 @@
+[
+  {
+    "name": "wv-github-stars",
+    "url": "https://github.com/browser-use/browser-use",
+    "task": "Look at this GitHub repository's main page. Find the 'Stars' count shown near the top. Emit done with the result like 'browser-use has X stars'. The star count is in the visible text or in a button/link near 'Star' / 'Watch' / 'Fork'.",
+    "maxSteps": 6
+  },
+  {
+    "name": "wv-arxiv-title",
+    "url": "https://arxiv.org/abs/2407.13032",
+    "task": "Read the title of this arXiv paper from the page. Emit done with the result formatted as 'Title: <full title>'. The title is in a heading at the top.",
+    "maxSteps": 4
+  },
+  {
+    "name": "wv-mdn-method",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView",
+    "task": "Read the MDN page for Element.scrollIntoView. Find the function signature (the syntax block showing how to call it). Emit done with the result containing the syntax line(s) showing the parameters the method accepts.",
+    "maxSteps": 6
+  },
+  {
+    "name": "wv-npm-version",
+    "url": "https://www.npmjs.com/package/playwright",
+    "task": "Look at the npm page for the playwright package. Find the latest published version number (typically shown near the top, formatted like 'X.Y.Z'). Emit done with the result like 'playwright latest version: X.Y.Z'.",
+    "maxSteps": 6
+  },
+  {
+    "name": "wv-form-fill",
+    "url": "https://httpbin.org/forms/post",
+    "task": "Fill out this form: type 'Jay' into the customer name field, type '555-1234' into the telephone field, type 'jay@example.com' into the email field, and click the Submit button. After submitting, you'll land on a page showing the form data echoed back as JSON. Emit done with the result containing the JSON-formatted form values you submitted.",
+    "maxSteps": 15
+  }
+]

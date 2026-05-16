@@ -1,0 +1,20 @@
+[
+  {
+    "name": "wv-github-stars",
+    "url": "https://github.com/browser-use/browser-use",
+    "task": "Look at this GitHub repository's main page. Find the 'Stars' count shown near the top of the page (a number near the words Star / Watch / Fork). Emit done with the result like 'browser-use has X stars'.",
+    "maxSteps": 8
+  },
+  {
+    "name": "wv-mdn-method",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView",
+    "task": "Read the MDN page for Element.scrollIntoView. Scroll DOWN to find the Syntax section which shows how to call the method. Emit done with the result containing one of the syntax lines (e.g. 'scrollIntoView()' or 'scrollIntoView(scrollIntoViewOptions)').",
+    "maxSteps": 8
+  },
+  {
+    "name": "wv-npm-version",
+    "url": "https://www.npmjs.com/package/playwright",
+    "task": "Look at the npm page for the playwright package. Find the latest published version number — it appears as a label near the top, formatted like X.Y.Z. Emit done with the result like 'playwright latest version: X.Y.Z'.",
+    "maxSteps": 6
+  }
+]

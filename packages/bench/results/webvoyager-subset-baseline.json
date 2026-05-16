@@ -1,0 +1,51 @@
+{
+  "model": "anthropic:claude-haiku-4-5",
+  "agent": "fast-browser v0.0.1",
+  "date": "2026-05-16",
+  "summary": {
+    "total": 5,
+    "successful": 1,
+    "successRate": 0.2,
+    "totalCostUsd": 0.082875,
+    "note": "1/5 success rate. Pattern: agent excels at acting (form-fill clicked + typed + submitted 7/8 steps perfectly), struggles to extract answers from SPA-rendered text in spans, code blocks, and slow-loading JS-heavy pages."
+  },
+  "results": [
+    {
+      "name": "wv-arxiv-title",
+      "success": true,
+      "steps": 1,
+      "wallMs": 1329,
+      "costUsd": 0.002542,
+      "result": "Title: Agent-E: From Autonomous Web Navigation to Foundational Design Principles in Agentic Systems"
+    },
+    {
+      "name": "wv-github-stars",
+      "success": false,
+      "exitReason": "max_steps",
+      "note": "Star count visible at top, agent kept scrolling further. Star count rendered as generic role with text node, not as a labelled link/button — agent didn't recognize it as the answer."
+    },
+    {
+      "name": "wv-mdn-method",
+      "success": false,
+      "exitReason": "max_steps",
+      "note": "Bounced scroll up/down looking for Syntax section. Code blocks now in visible text but agent didn't find the right viewport."
+    },
+    {
+      "name": "wv-npm-version",
+      "success": false,
+      "exitReason": "max_steps",
+      "note": "npm.com is a slow JS SPA. Agent kept calling wait_for(3000ms). Version may have been visible after second wait but agent didn't snapshot-and-evaluate, it just kept waiting."
+    },
+    {
+      "name": "wv-form-fill",
+      "success": false,
+      "exitReason": "max_steps",
+      "note": "ACTING phase 7/8 perfect: clicked all 3 textboxes, typed each value, clicked Submit. Failed at READING the JSON response on httpbin's confirmation page. Single concrete fix: visible-text walker should include <pre> contents > 80 chars (currently capped)."
+    }
+  ],
+  "knownGaps": [
+    "Visible-text capture for JS-rendered SPAs (npm, GitHub) — fingerprint stability + re-read-after-wait would help.",
+    "Long <pre>/<code> blocks (httpbin JSON response) — current 800-char cap drops them.",
+    "Recognising 'the answer is already on screen' — agent often defaults to scroll instead of done."
+  ]
+}
