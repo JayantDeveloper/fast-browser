@@ -80,13 +80,12 @@ export function serializeFrame(frame: PerceptionFrame, opts: SerializeOptions = 
   lines.push(frame.meta.url);
   lines.push(`title: ${frame.meta.title}`);
   lines.push("");
-  lines.push(`## Interactive elements (${frame.interactive.length} total, addressable by [N]→backendNodeId)`);
+  lines.push(`## Interactive elements (${frame.interactive.length} addressable; use node=N as targetNodeId)`);
   const interactive = frame.interactive.slice(0, maxInteractive);
-  for (let i = 0; i < interactive.length; i++) {
-    const n = interactive[i]!;
+  for (const n of interactive) {
     let name = n.name;
     if (maxName > 0 && name.length > maxName) name = name.slice(0, maxName) + "…";
-    let line = `[${i}] node=${n.backendNodeId} ${n.role} '${name}'`;
+    let line = `node=${n.backendNodeId}  ${n.role} '${name}'`;
     if (n.value !== undefined) line += ` = ${JSON.stringify(n.value)}`;
     if (n.disabled) line += ` (disabled)`;
     lines.push(line);

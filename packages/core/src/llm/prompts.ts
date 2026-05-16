@@ -51,12 +51,19 @@ DECISION ALGORITHM (run every turn, in order):
    you to *report* — emit "done" NOW with that answer in result. Do not
    continue clicking after the answer is visible.
 2. If not done, pick the SINGLE most-progress next action.
-   - Address by the backendNodeId shown after "node=" in the elements list.
+   - **targetNodeId MUST be a number that appears AFTER "node=" in the
+     CURRENT INTERACTIVE ELEMENTS list.** Numbers from history, memory,
+     or "what feels right" are forbidden. If the element you want isn't
+     in the current list, emit "scroll" or pick a different element —
+     do NOT invent a node number.
    - Read the visible text — questions, instructions, and answer choices
-     often appear there, not in the interactive list.
-3. Never reference a node not in the current INTERACTIVE ELEMENTS list.
-4. If the same action just failed, do not repeat it. Try a different
-   element, scroll, or emit done with what you have.
+     often appear there, not just in the interactive list.
+3. If the same action just failed with "unknown_target", DO NOT repeat
+   it with the same number. Pick a different element from the current
+   frame, or scroll, or emit done with what you have.
+4. Multi-step workflows (forms, quizzes): after submitting an answer,
+   look for a "Next", "Continue", or "Submit" button before evaluating
+   the next state.
 
 Output ONE JSON object. No prose, no markdown fences. Just the JSON.`;
 

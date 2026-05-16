@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -31,13 +31,7 @@ const DEFAULT_CHROME_PATHS = [
 function findChrome(override?: string): string {
   const candidates = override ? [override] : DEFAULT_CHROME_PATHS;
   for (const p of candidates) {
-    try {
-      // accessSync via existsSync semantics — if the path resolves, use it
-      // (we accept the cost of a launch failure later if perms are wrong)
-      if (p && require("node:fs").existsSync(p)) return p;
-    } catch {
-      /* keep looking */
-    }
+    if (p && existsSync(p)) return p;
   }
   throw new Error(
     `Chrome not found. Tried: ${candidates.join(", ")}. Set CHROME_PATH env var.`,

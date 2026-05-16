@@ -51,11 +51,22 @@ export class GeminiProvider implements Provider {
     };
 
     const t0 = Date.now();
-    const resp = await fetchWithTimeout(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    }, opts.timeoutMs ?? 60_000);
+    let resp: Response;
+    let attempts = 0;
+    while (true) {
+      attempts++;
+      resp = await fetchWithTimeout(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }, opts.timeoutMs ?? 60_000);
+      if (resp.status !== 429 || attempts >= 2) break;
+      // Honor retry hint if present, else back off 15s.
+      const text = await resp.clone().text().catch(() => "");
+      const m = text.match(/retry in ([\d.]+)s/i);
+      const sleepMs = m?.[1] ? Math.min(30_000, Math.ceil(Number(m[1]) * 1000) + 500) : 15_000;
+      await new Promise((r) => setTimeout(r, sleepMs));
+    }
     const latencyMs = Date.now() - t0;
 
     if (!resp.ok) {

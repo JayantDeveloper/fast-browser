@@ -1,0 +1,22 @@
+{
+  "name": "@fast-browser/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "fast-browser": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsc -p tsconfig.json && node dist/main.js"
+  },
+  "dependencies": {
+    "@fast-browser/core": "workspace:*",
+    "@fast-browser/adapter-cdp-node": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

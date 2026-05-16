@@ -145,16 +145,13 @@ export class CdpNodeDriver implements BrowserDriver {
       }>;
     };
 
-    const out: AxNode[] = [];
+    const candidates: AxNode[] = [];
     for (const n of r.nodes) {
       if (n.ignored) continue;
       if (n.backendDOMNodeId === undefined) continue;
       const role = n.role?.value ?? "";
       if (!role) continue;
       const interactive = INTERACTIVE_ROLES.has(role);
-      // Keep interactive elements always; landmarks are kept for context.
-      // Drop everything else (paragraphs, generic divs, etc) — visible-text
-      // walk handles that surface.
       if (!interactive && !LANDMARK_ROLES.has(role)) continue;
 
       let disabled = false;
@@ -174,9 +171,74 @@ export class CdpNodeDriver implements BrowserDriver {
       if (n.description?.value) node.description = n.description.value;
       if (disabled) node.disabled = true;
       if (focusable) node.focusable = true;
-      out.push(node);
+      candidates.push(node);
     }
-    return out;
+
+    // Viewport visibility filter — kills navigation chrome / footer / off-screen
+    // links and dramatically shrinks the prompt. This is the highest-leverage
+    // change for keeping per-step latency low and avoiding model hallucination.
+    return await this.filterToVisible(candidates);
+  }
+
+  private async filterToVisible(nodes: AxNode[]): Promise<AxNode[]> {
+    if (nodes.length === 0) return nodes;
+    const ids = nodes.map((n) => n.backendNodeId);
+    // Resolve backendNodeIds to objectIds in one batch via Runtime.evaluate.
+    // We use document.querySelectorAll-free path: pushNodesByBackendIdsToFrontend
+    // gives us nodeIds, then DOM.resolveNode → objectId, then getBoundingClientRect.
+    // Simpler: use DOM.getNodeForLocation? No — we already have backendNodeIds.
+    // Cleanest: build a single Runtime.evaluate that resolves each backendNodeId
+    // to a DOM node via internal mapping isn't directly possible. Instead, use
+    // DOM.resolveNode for each (cheap, parallel-able).
+
+    const visibleSet = new Set<number>();
+    const resolved = await Promise.all(
+      ids.map(async (backendNodeId) => {
+        try {
+          const r = (await this.c.send("DOM.resolveNode", { backendNodeId })) as {
+            object: { objectId: string };
+          };
+          return { backendNodeId, objectId: r.object.objectId };
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    // Now check viewport-intersection for each in one Runtime call group.
+    await Promise.all(
+      resolved.map(async (item) => {
+        if (!item) return;
+        try {
+          const r = (await this.c.send("Runtime.callFunctionOn", {
+            objectId: item.objectId,
+            functionDeclaration: `function () {
+              const r = this.getBoundingClientRect ? this.getBoundingClientRect() : null;
+              if (!r) return false;
+              const vh = window.innerHeight, vw = window.innerWidth;
+              // Pad: include elements within 1 viewport above/below.
+              if (r.bottom < -vh || r.top > vh * 2) return false;
+              if (r.right < 0 || r.left > vw) return false;
+              if (r.width === 0 && r.height === 0) return false;
+              const s = window.getComputedStyle(this);
+              if (s.visibility === 'hidden' || s.display === 'none') return false;
+              return true;
+            }`,
+            returnByValue: true,
+          })) as { result: { value: boolean } };
+          if (r.result.value === true) visibleSet.add(item.backendNodeId);
+        } catch {
+          /* */
+        } finally {
+          // Release the remote object handle to avoid leaks.
+          try {
+            await this.c.send("Runtime.releaseObject", { objectId: item.objectId });
+          } catch {/* */}
+        }
+      }),
+    );
+
+    return nodes.filter((n) => visibleSet.has(n.backendNodeId));
   }
 
   async getVisibleText(opts?: { viewportPad?: number }): Promise<TextBlock[]> {
