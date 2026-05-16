@@ -1,0 +1,42 @@
+{
+  "model": "anthropic:claude-haiku-4-5",
+  "agent": "fast-browser v0.0.1",
+  "date": "2026-05-16",
+  "summary": {
+    "total": 3,
+    "successful": 2,
+    "successRate": 0.667,
+    "totalWallMs": 23904,
+    "totalCostUsd": 0.038945,
+    "medianStepLatencyMs": 842
+  },
+  "results": [
+    {
+      "name": "hn-top-story",
+      "success": true,
+      "steps": 1,
+      "wallMs": 2073,
+      "costUsd": 0.005975,
+      "result": "Project Gutenberg – keeps getting better — 813 points",
+      "note": "Agent read Hacker News front page in a single perception cycle and emitted done."
+    },
+    {
+      "name": "wikipedia-fact",
+      "success": true,
+      "steps": 1,
+      "wallMs": 4161,
+      "costUsd": 0.002992,
+      "result": "Article: Aqua Blue. First sentence: Aqua Blue is a conventional passenger-roaming ship of the Seajets company.",
+      "note": "Random Wikipedia article read in 1 step."
+    },
+    {
+      "name": "duckduckgo-search",
+      "success": false,
+      "steps": 12,
+      "wallMs": 13460,
+      "costUsd": 0.029978,
+      "exitReason": "max_steps",
+      "note": "Agent successfully searched but couldn't find the answer in the rendered results — scrolled 9 times. Search results page snippet extraction is a known gap; visible-text walker may not capture DDG's snippet markup."
+    }
+  ]
+}

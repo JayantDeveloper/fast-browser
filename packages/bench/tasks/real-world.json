@@ -1,0 +1,20 @@
+[
+  {
+    "name": "hn-top-story",
+    "url": "https://news.ycombinator.com",
+    "task": "Look at the front page of Hacker News. Find the story currently ranked #1 (the very first story listed). Emit done with the result containing both the story's title and its score in points (e.g. '<title> — <N> points'). The titles are visible text and the points appear under each story.",
+    "maxSteps": 8
+  },
+  {
+    "name": "wikipedia-fact",
+    "url": "https://en.wikipedia.org/wiki/Special:Random",
+    "task": "You'll land on a random Wikipedia article. Read the article's title (the H1 at the top) and the first sentence. Emit done with the result formatted as 'Article: <title>. First sentence: <sentence>'.",
+    "maxSteps": 6
+  },
+  {
+    "name": "duckduckgo-search",
+    "url": "https://duckduckgo.com",
+    "task": "Find the search box, type 'population of Tokyo 2024' into it, and submit the search. Then read the result snippets that appear and emit done with the result containing the population figure you found (e.g. '~13.96 million' or whatever number appears in the top snippets).",
+    "maxSteps": 12
+  }
+]
