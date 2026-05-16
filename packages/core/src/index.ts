@@ -41,3 +41,7 @@ export { safeParseJson } from "./llm/safe-parse.js";
 export { GeminiProvider, type GeminiProviderOpts } from "./llm/providers/gemini.js";
 export { OpenRouterProvider, type OpenRouterProviderOpts } from "./llm/providers/openrouter.js";
 export { ACTION_SCHEMA, SYSTEM_PROMPT, buildUserPrompt, actionToJson } from "./llm/prompts.js";
+
+export { run, type RunInput } from "./loop/agent.js";
+export { History } from "./loop/history.js";
+export type { AgentConfig, RunResult, TrajectoryStep } from "./loop/types.js";
