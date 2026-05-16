@@ -68,6 +68,11 @@ export class AnthropicProvider implements Provider {
             "x-api-key": this.apiKey,
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
+            // Required when calling from a browser/extension context. Anthropic
+            // blocks direct browser calls by default; this header acknowledges
+            // we are intentionally bypassing the recommended server-side proxy
+            // pattern (BYO key in the user's own browser is the actual model).
+            "anthropic-dangerous-direct-browser-access": "true",
           },
           body: JSON.stringify(body),
         },

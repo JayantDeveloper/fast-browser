@@ -6,22 +6,30 @@ End-to-end from `pnpm build` to a public Chrome Web Store listing.
 
 - [ ] Create / log into a Chrome Web Store developer account
       (https://chrome.google.com/webstore/devconsole/) — one-time $5 fee.
-- [ ] Pick a hosting URL for `store/privacy-policy.md` (GitHub Pages is
-      fine — `https://<user>.github.io/fast-browser/privacy.html`).
-- [ ] Generate the four screenshots described in
-      `store/listing-copy.md` → "Promotional images" by loading the
-      unpacked extension and screenshotting at 1280×800.
+- [x] Privacy policy hosted on GitHub Pages:
+      <https://jayantdeveloper.github.io/fast-browser/privacy.html>
+      (source: `docs/privacy.md`, paste this URL into the dashboard).
+- [x] Screenshots generated at 1280×800 — see `store/sidepanel-{idle,running,done}.png`
+      and `store/options.png`. Regenerate any time with
+      `cd packages/extension && pnpm exec tsx test/screenshots/take-screenshots.ts`.
+      They're functional but stark; replace with composited marketing
+      images later if you want more polish.
 
 ## Every submission
 
-### Build
+### Build (production)
 
 ```bash
 cd packages/extension
 pnpm install                       # only when deps changed
 pnpm test                          # all green
-pnpm build                         # outputs dist/
+PRODUCTION=1 pnpm exec tsx build.ts  # minified + test hook stripped
 ```
+
+The production build sets `__FB_TEST_HOOK__` to false so the Playwright
+e2e bridge in `background.ts` is dead-code-eliminated. `build.ts`
+explicitly verifies `__fb_test` does not appear in the bundle and aborts
+the build if it does.
 
 ### Smoke (load unpacked)
 
@@ -38,6 +46,7 @@ pnpm build                         # outputs dist/
 
 ```bash
 cd packages/extension
+PRODUCTION=1 pnpm exec tsx build.ts
 zip -r ../../store/fast-browser-0.0.1.zip dist/
 ```
 

@@ -88,7 +88,7 @@ accessibility tree and dispatch input events. The bar disappears the
 moment the task finishes.
 
 OPEN-SOURCE
-github.com/jaymaheshwari/fast-browser
+github.com/JayantDeveloper/fast-browser
 ```
 
 ## Promotional images
@@ -128,10 +128,9 @@ using a user-supplied LLM API key.
 
 ## Privacy policy URL
 
-Once hosted, paste here:
-
 ```
-https://<your-host>/fast-browser/privacy.html
+https://jayantdeveloper.github.io/fast-browser/privacy.html
 ```
 
-The source markdown is at `store/privacy-policy.md`.
+Hosted via GitHub Pages from `docs/privacy.md`. Allow ~1 minute after
+push for Pages to publish the first build.

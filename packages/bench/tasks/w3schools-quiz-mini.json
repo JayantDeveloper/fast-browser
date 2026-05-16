@@ -1,0 +1,8 @@
+[
+  {
+    "name": "w3schools-html-quiz-5q",
+    "url": "https://www.w3schools.com/quiztest/quiztest.asp?qtest=HTML",
+    "task": "Take this HTML quiz. The quiz is already on screen — Question 1. For each of the FIRST 5 QUESTIONS ONLY: read the question stem in the visible text, click the radio button for the answer you believe is correct based on standard HTML knowledge, click the button labeled 'Next ❯' to advance. After answering 5 questions (you'll be on Question 6 of 40), STOP and emit done with the result 'Answered 5 questions; on Q6 now'. Do NOT continue past 5 questions.",
+    "maxSteps": 30
+  }
+]

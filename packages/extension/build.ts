@@ -3,7 +3,13 @@
  * Output is loadable as an unpacked Chrome extension at packages/extension/dist.
  */
 
-import { copyFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
@@ -13,13 +19,19 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, 'src');
 const OUT = join(here, 'dist');
 
+const PRODUCTION = process.env['PRODUCTION'] === '1';
+
 const COMMON: BuildOptions = {
   bundle: true,
   format: 'esm',
   target: 'chrome116',
   platform: 'browser',
-  sourcemap: true,
+  sourcemap: !PRODUCTION,
+  minify: PRODUCTION,
   logLevel: 'info',
+  define: {
+    __FB_TEST_HOOK__: PRODUCTION ? 'false' : 'true',
+  },
 };
 
 async function main(): Promise<void> {
@@ -58,7 +70,26 @@ async function main(): Promise<void> {
 
   copyIcons();
 
-  console.log(`✔ extension bundled at ${OUT}`);
+  if (PRODUCTION) {
+    verifyTestHookAbsent(join(OUT, 'background.js'));
+  }
+
+  console.log(
+    `✔ extension bundled at ${OUT}${PRODUCTION ? ' (production)' : ' (dev)'}`,
+  );
+}
+
+/** Sanity-check that the production bundle truly has no test hook. */
+function verifyTestHookAbsent(file: string): void {
+  const src = readFileSync(file, 'utf8');
+  if (src.includes('__fb_test')) {
+    throw new Error(
+      `production build leaked __fb_test into ${file}. ` +
+        `Check that __FB_TEST_HOOK__ is 'false' in COMMON.define and that ` +
+        `the SW source uses if (__FB_TEST_HOOK__) { ... }.`,
+    );
+  }
+  console.log(`  verified ${file} has no test hook`);
 }
 
 function copyIcons(): void {

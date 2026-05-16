@@ -8,7 +8,12 @@
  * long tasks.
  */
 
-import { run } from '@fast-browser/core';
+import {
+  AnthropicProvider,
+  GeminiProvider,
+  OpenRouterProvider,
+  run,
+} from '@fast-browser/core';
 import { ChromeDebuggerDriver } from '@fast-browser/adapter-cdp-extension';
 
 import {
@@ -24,6 +29,22 @@ import {
 } from './messages.js';
 import { buildProvider, MissingApiKeyError } from './provider-factory.js';
 import { loadSettings } from './settings-storage.js';
+
+// Expose internals on globalThis for the Playwright e2e suite. Harmless
+// at runtime — the symbols are just constructors and the run() function,
+// no privileged behavior. Production code never reads __fb_test. The
+// `if (__FB_TEST_HOOK__)` block is dead-code-eliminated in PRODUCTION
+// builds via an esbuild `define` (build.ts).
+declare const __FB_TEST_HOOK__: boolean;
+if (__FB_TEST_HOOK__) {
+  (globalThis as unknown as Record<string, unknown>).__fb_test = {
+    run,
+    AnthropicProvider,
+    GeminiProvider,
+    OpenRouterProvider,
+    ChromeDebuggerDriver,
+  };
+}
 
 const KEEPALIVE_ALARM = 'fast-browser-keepalive';
 const KEEPALIVE_PERIOD_MIN = 0.4;
