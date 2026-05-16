@@ -1,0 +1,24 @@
+{
+  "name": "w3schools-html-quiz",
+  "model": "anthropic:claude-haiku-4-5",
+  "agent": "fast-browser v0.0.1",
+  "date": "2026-05-16",
+  "url": "https://www.w3schools.com/quiztest/quiztest.asp?qtest=HTML",
+  "success": true,
+  "score": "40/40",
+  "steps": 120,
+  "maxSteps": 120,
+  "wallMs": 282927,
+  "wallHuman": "4m43s",
+  "costUsdEstimate": 0.3146,
+  "medianStepLatencyMs": 785,
+  "exitReason": "done",
+  "finalResult": "You answered 40 out of 40 questions correctly",
+  "comparedTo": {
+    "predecessor": "local-browser/ (Python + AxTree-only + OpenRouter free)",
+    "predecessorScore": "0/20 (0% — got stuck in cookie-banner loop)",
+    "predecessorWallMs": 872000,
+    "predecessorWallHuman": "14m32s",
+    "speedup": "3.1x wall, 13x per-step LLM (10s → 0.78s median)"
+  }
+}
