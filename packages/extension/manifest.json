@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "fast-browser",
+  "version": "0.0.1",
+  "description": "Local browser agent — completes tasks in your active tab using your own Claude / Gemini / OpenRouter API key.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "debugger",
+    "scripting",
+    "storage",
+    "alarms",
+    "sidePanel",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Open fast-browser"
+  }
+}

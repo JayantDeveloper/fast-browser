@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { shortHash } from "../util/hash.js";
 
 export interface CachedSelector {
   urlPattern: string;
@@ -34,7 +34,7 @@ export class SelectorCache {
   }
 
   static intentHash(intent: string): string {
-    return createHash("sha256").update(intent).digest("hex").slice(0, 12);
+    return shortHash(intent);
   }
 
   get(urlPattern: string, intentHash: string): CachedSelector | undefined {

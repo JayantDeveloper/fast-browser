@@ -1,0 +1,164 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+h1 {
+  font-size: 14px;
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+  margin: 0 0 6px 0;
+}
+
+a#open-options {
+  font-size: 11px;
+  text-decoration: none;
+  opacity: 0.6;
+}
+
+a#open-options:hover {
+  opacity: 1;
+}
+
+#task-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+button {
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+#status-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pill.idle {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.pill.running {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.pill.done {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pill.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+#trace {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+}
+
+#trace li {
+  line-height: 1.4;
+}
+
+#trace .step-fail {
+  color: #991b1b;
+}
+
+#trace .step-ok {
+  color: #065f46;
+}
+
+#trace .step-meta {
+  opacity: 0.55;
+}
+
+#result-section {
+  border-top: 1px solid rgba(127, 127, 127, 0.2);
+  padding-top: 10px;
+}
+
+#result-summary {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+#result-text {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  margin: 0;
+}

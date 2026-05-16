@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>fast-browser — settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>fast-browser settings</h1>
+      <p class="hint">
+        Pick a provider, paste your own API key. Keys live in
+        chrome.storage.local on this device — they never leave Chrome.
+      </p>
+
+      <form id="settings-form">
+        <fieldset>
+          <legend>Active provider</legend>
+          <label><input type="radio" name="provider" value="anthropic"> Anthropic (Claude)</label>
+          <label><input type="radio" name="provider" value="gemini"> Google Gemini</label>
+          <label><input type="radio" name="provider" value="openrouter"> OpenRouter</label>
+        </fieldset>
+
+        <label>
+          Model
+          <input id="model" type="text" placeholder="e.g. claude-haiku-4-5" />
+        </label>
+
+        <label>
+          Max steps
+          <input id="max-steps" type="number" min="1" max="200" />
+        </label>
+
+        <fieldset>
+          <legend>API keys</legend>
+          <label>
+            Anthropic
+            <input id="key-anthropic" type="password" autocomplete="off" />
+          </label>
+          <label>
+            Gemini
+            <input id="key-gemini" type="password" autocomplete="off" />
+          </label>
+          <label>
+            OpenRouter
+            <input id="key-openrouter" type="password" autocomplete="off" />
+          </label>
+        </fieldset>
+
+        <button type="submit">Save</button>
+        <span id="save-confirmation" hidden>Saved.</span>
+      </form>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

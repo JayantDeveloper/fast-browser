@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import type { BrowserDriver, AxNode } from "../driver.js";
+import { stableHash } from "../util/hash.js";
 import type { PerceptionFrame } from "./types.js";
 
 export interface SnapshotOptions {
@@ -22,21 +22,14 @@ export async function snapshot(
   const interactive = ax.filter((n) => n.interactive);
   const landmarks = ax.filter((n) => !n.interactive);
 
-  const h = createHash("sha256");
-  h.update(meta.url);
-  h.update("|");
-  h.update(
-    interactive
-      .map((n) => n.backendNodeId)
-      .sort((a, b) => a - b)
-      .join(","),
-  );
-  h.update("|");
   // First N chars of concatenated text — captures meaningful page change
   // without making every keystroke flip the fingerprint.
   const textBlob = text.map((b) => b.text).join(" ").slice(0, 256);
-  h.update(textBlob);
-  const fingerprint = h.digest("hex").slice(0, 16);
+  const ids = interactive
+    .map((n) => n.backendNodeId)
+    .sort((a, b) => a - b)
+    .join(",");
+  const fingerprint = stableHash(`${meta.url}|${ids}|${textBlob}`);
 
   return { meta, interactive, landmarks, text, fingerprint };
 }

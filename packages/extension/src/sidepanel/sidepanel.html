@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>fast-browser</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header>
+      <h1>fast-browser</h1>
+      <a id="open-options" href="#">Settings</a>
+    </header>
+
+    <section id="task-section">
+      <label for="task">Task</label>
+      <textarea
+        id="task"
+        rows="4"
+        placeholder="e.g. Find the top story on Hacker News and tell me its title and points."
+      ></textarea>
+      <div class="row">
+        <button id="run">Run on active tab</button>
+        <button id="cancel" disabled>Cancel</button>
+      </div>
+    </section>
+
+    <section id="status-section">
+      <span id="status-pill" class="pill idle">idle</span>
+      <span id="status-message"></span>
+    </section>
+
+    <section id="trace-section">
+      <h2>Trajectory</h2>
+      <ol id="trace"></ol>
+    </section>
+
+    <section id="result-section" hidden>
+      <h2>Result</h2>
+      <div id="result-summary"></div>
+      <pre id="result-text"></pre>
+    </section>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
