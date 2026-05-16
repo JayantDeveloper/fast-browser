@@ -1,0 +1,6 @@
+title: fast-browser
+description: A local AI agent that completes tasks in your active Chrome tab
+theme: jekyll-theme-cayman
+markdown: kramdown
+url: "https://jayantdeveloper.github.io"
+baseurl: "/fast-browser"
