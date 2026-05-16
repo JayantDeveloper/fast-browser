@@ -3,7 +3,7 @@
  * Output is loadable as an unpacked Chrome extension at packages/extension/dist.
  */
 
-import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
@@ -56,7 +56,20 @@ async function main(): Promise<void> {
   copyFileSync(join(SRC, 'options/options.html'), join(OUT, 'options.html'));
   copyFileSync(join(SRC, 'options/options.css'), join(OUT, 'options.css'));
 
+  copyIcons();
+
   console.log(`✔ extension bundled at ${OUT}`);
+}
+
+function copyIcons(): void {
+  const iconsSrc = join(here, 'icons');
+  const iconsDest = join(OUT, 'icons');
+  mkdirSync(iconsDest, { recursive: true });
+  for (const file of readdirSync(iconsSrc)) {
+    if (file.endsWith('.png')) {
+      copyFileSync(join(iconsSrc, file), join(iconsDest, file));
+    }
+  }
 }
 
 void main();

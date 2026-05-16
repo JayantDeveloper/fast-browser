@@ -12,6 +12,12 @@ import { run } from '@fast-browser/core';
 import { ChromeDebuggerDriver } from '@fast-browser/adapter-cdp-extension';
 
 import {
+  appendStep,
+  clearCheckpoint,
+  reapStaleDebuggerSessions,
+  saveCheckpoint,
+} from './checkpoint.js';
+import {
   PANEL_PORT_NAME,
   type BackgroundToPanel,
   type PanelToBackground,
@@ -25,6 +31,11 @@ const KEEPALIVE_PERIOD_MIN = 0.4;
 let activePort: chrome.runtime.Port | null = null;
 let cancelRequested = false;
 let runInFlight = false;
+
+// Boot-time cleanup. The SW restarts on every wake; this runs once per
+// wake and cleans up any chrome.debugger sessions left orphaned by a
+// crash or eviction during a previous task.
+void reapStaleDebuggerSessions();
 
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== PANEL_PORT_NAME) {
@@ -75,6 +86,7 @@ async function handleStart(task: string, url?: string): Promise<void> {
   cancelRequested = false;
   emit({ type: 'status', state: 'running' });
 
+  let tabId: number | null = null;
   try {
     await chrome.alarms.create(KEEPALIVE_ALARM, {
       periodInMinutes: KEEPALIVE_PERIOD_MIN,
@@ -83,10 +95,21 @@ async function handleStart(task: string, url?: string): Promise<void> {
     if (!tab.id) {
       throw new Error('No active tab to attach to.');
     }
+    tabId = tab.id;
     const settings = await loadSettings();
     const actor = buildProvider(settings);
-    const driver = new ChromeDebuggerDriver({ tabId: tab.id });
-    await driver.attach({ tabId: tab.id, ...(url ? { url } : {}) });
+    const driver = new ChromeDebuggerDriver({ tabId });
+    await driver.attach({ tabId, ...(url ? { url } : {}) });
+
+    await clearCheckpoint();
+    await saveCheckpoint({
+      taskId: makeTaskId(),
+      task,
+      ...(url ? { startUrl: url } : {}),
+      tabId,
+      startedAt: Date.now(),
+      status: 'running',
+    });
 
     try {
       const result = await run(
@@ -94,7 +117,12 @@ async function handleStart(task: string, url?: string): Promise<void> {
         {
           actor,
           maxSteps: settings.maxSteps,
-          onStep: (step) => emit({ type: 'step', step }),
+          onStep: (step) => {
+            emit({ type: 'step', step });
+            // Fire-and-forget — we don't want a slow chrome.storage write to
+            // delay the next perception/LLM cycle.
+            void appendStep(step);
+          },
         },
         { task, ...(url ? { startUrl: url } : {}) },
       );
@@ -107,8 +135,13 @@ async function handleStart(task: string, url?: string): Promise<void> {
         costUsdEstimate: result.costUsdEstimate,
       });
       emit({ type: 'status', state: result.success ? 'done' : 'error' });
+      // Successful tasks clear the checkpoint; failed ones keep it so the
+      // panel can show the partial trajectory until the next task starts.
+      if (result.success) {
+        await clearCheckpoint();
+      }
     } finally {
-      await driver.detach().catch(() => {/* */});
+      await driver.detach().catch(() => {/* tolerate */});
     }
   } catch (e) {
     const message = e instanceof MissingApiKeyError ? e.message : (e as Error).message;
@@ -121,6 +154,10 @@ async function handleStart(task: string, url?: string): Promise<void> {
   if (cancelRequested) {
     cancelRequested = false;
   }
+}
+
+function makeTaskId(): string {
+  return `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 async function currentActiveTab(): Promise<chrome.tabs.Tab> {
