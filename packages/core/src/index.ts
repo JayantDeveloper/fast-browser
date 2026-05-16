@@ -19,3 +19,18 @@ export {
   type SnapshotOptions,
   type SerializeOptions,
 } from "./perception/snapshot.js";
+export type {
+  Action,
+  ActionType,
+  ActionResult,
+  ActionResultOk,
+  ActionResultErr,
+  ActionErrorCode,
+  ClickAction,
+  TypeAction,
+  ScrollAction,
+  GotoAction,
+  WaitForAction,
+  DoneAction,
+} from "./actions/vocabulary.js";
+export { execute } from "./actions/executor.js";
