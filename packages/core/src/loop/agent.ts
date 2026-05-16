@@ -4,6 +4,8 @@ import type { Action } from "../actions/vocabulary.js";
 import { snapshot, serializeFrame } from "../perception/snapshot.js";
 import { ACTION_SCHEMA, SYSTEM_PROMPT, buildUserPrompt } from "../llm/prompts.js";
 import { LlmError } from "../llm/types.js";
+import { maybeDismissConsent } from "../robustness/consent.js";
+import { LoopDetector } from "../robustness/loop-detect.js";
 import { History } from "./history.js";
 import type { AgentConfig, RunResult, TrajectoryStep } from "./types.js";
 
@@ -31,8 +33,11 @@ export async function run(
   const maxSteps = config.maxSteps ?? 60;
   const historyWindow = config.historyWindow ?? 8;
   const history = new History();
+  const detector = new LoopDetector();
+  const dismissedOrigins = new Set<string>();
   const t0 = Date.now();
   let costUsd = 0;
+  let stuckNotice: string | undefined;
 
   if (input.startUrl) {
     await driver.navigate(input.startUrl);
@@ -40,13 +45,23 @@ export async function run(
 
   for (let i = 1; i <= maxSteps; i++) {
     config.onTurnStart?.({ step: i, url: (await driver.getPageMeta()).url });
-    const frame = await snapshot(driver);
+    let frame = await snapshot(driver);
+
+    // Per-origin consent dismissal. Cheap, no LLM call. Re-snapshot if it
+    // actually clicked something so the model sees the post-dismiss page.
+    const consent = await maybeDismissConsent(driver, frame, dismissedOrigins);
+    if (consent.dismissed) {
+      frame = await snapshot(driver);
+    }
+
     const frameSerialized = serializeFrame(frame);
     const userPrompt = buildUserPrompt({
       task: input.task,
       historySerialized: history.serialize(historyWindow),
       frameSerialized,
+      ...(stuckNotice ? { notice: stuckNotice } : {}),
     });
+    stuckNotice = undefined;
 
     let action: Action;
     let llmLatencyMs = 0;
@@ -133,6 +148,14 @@ export async function run(
 
     if (result.ok && result.terminal) {
       return finish(true, "done", result.summary, history, t0, costUsd);
+    }
+
+    // Loop-detection: if we've stalled, push a hard-coded notice into the
+    // next prompt. Phase 1 stops here; U8 will hand off to a planner.
+    const stuck = detector.observe({ url: frame.meta.url, action, fingerprint: frame.fingerprint });
+    if (stuck.stuck) {
+      stuckNotice = `You appear stuck (${stuck.reason}). Try a DIFFERENT element or scroll. If the task is impossible from here, emit done with what you've found.`;
+      detector.reset();
     }
   }
 
