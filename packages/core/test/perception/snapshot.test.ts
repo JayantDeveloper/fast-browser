@@ -89,12 +89,14 @@ describe("snapshot", () => {
 });
 
 describe("serializeFrame", () => {
-  it("renders interactive lines with index → backendNodeId mapping", async () => {
+  it("renders interactive lines addressed by node= identifier", async () => {
     const frame = await snapshot(fakeDriver({ meta: META, ax: QUIZ_AX, text: QUIZ_TEXT }));
     const out = serializeFrame(frame);
-    expect(out).toContain("[0] node=11 radio 'Choice A'");
-    expect(out).toContain("[3] node=14 button 'Submit'");
-    expect(out).toContain("(disabled)"); // disabled flag on submit-disabled button is absent here (Submit is enabled), but disabled button still present in interactive section if disabled=true — let's at least confirm marker syntax appears in some line
+    expect(out).toContain("node=11");
+    expect(out).toContain("radio 'Choice A'");
+    expect(out).toContain("node=14");
+    expect(out).toContain("button 'Submit'");
+    expect(out).toContain("(disabled)");
   });
 
   it("includes the visible-text section with question stem", async () => {
@@ -113,8 +115,8 @@ describe("serializeFrame", () => {
     }));
     const frame = await snapshot(fakeDriver({ meta: META, ax: big, text: [] }));
     const out = serializeFrame(frame, { maxInteractive: 10 });
-    expect(out).toContain("[9] node=109 button 'Btn 9'");
-    expect(out).not.toContain("[10] node=110");
+    expect(out).toContain("node=109");
+    expect(out).not.toContain("node=110");
     expect(out).toContain("and 240 more");
   });
 
