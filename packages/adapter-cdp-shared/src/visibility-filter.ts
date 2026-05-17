@@ -219,17 +219,36 @@ const NODE_PROBE_FN = `function (pad) {
     return base ? { visible: true, derivedName: base } : { visible: true };
   }
 
-  // Walk up from the input's label, looking at PREVIOUS siblings at
-  // each level for text that isn't itself an option label. The first
-  // such text is the question stem for this group.
+  // Walk up from the input's label, looking at PREVIOUS siblings at each
+  // level for text that is NOT itself another option's container. An
+  // element is treated as an "option container" if it transitively
+  // contains any form control (input/select/textarea/label/button) —
+  // ARRS wraps each option in a sibling <div> rather than reusing a
+  // <label>, and the naive previous-sibling pick was grabbing the
+  // adjacent option's text as the question stem.
+  const isOptionContainer = (el) => {
+    if (!el || el.nodeType !== 1) return false;
+    const tag = el.tagName;
+    if (tag === 'LABEL' || tag === 'INPUT' || tag === 'SELECT' ||
+        tag === 'TEXTAREA' || tag === 'BUTTON') {
+      return true;
+    }
+    return !!(el.querySelector &&
+      el.querySelector('input, select, textarea, button, label'));
+  };
+  const isStructural = (el) => {
+    if (!el || el.nodeType !== 1) return false;
+    const tag = el.tagName;
+    return tag === 'BR' || tag === 'SCRIPT' || tag === 'STYLE' ||
+           tag === 'HR' || tag === 'IMG' || tag === 'SVG';
+  };
+
   let context = '';
   let cursor = labelEl || this;
-  for (let depth = 0; depth < 6 && cursor && cursor.parentElement; depth++) {
+  for (let depth = 0; depth < 8 && cursor && cursor.parentElement; depth++) {
     let sib = cursor.previousElementSibling;
     while (sib) {
-      if (sib.tagName !== 'LABEL' && sib.tagName !== 'INPUT' &&
-          sib.tagName !== 'BR' && sib.tagName !== 'SCRIPT' &&
-          sib.tagName !== 'STYLE') {
+      if (!isStructural(sib) && !isOptionContainer(sib)) {
         const t = cap(norm(sib.textContent));
         if (t && t !== base) {
           context = t;
@@ -239,9 +258,10 @@ const NODE_PROBE_FN = `function (pad) {
       sib = sib.previousElementSibling;
     }
     if (context) break;
-    // Also check if the parent has direct text-node children before
-    // the cursor — e.g. "Improve my performance" as a text node
-    // followed by labels.
+
+    // Also check if the parent itself has leading children (text nodes
+    // or non-option elements) before the cursor — e.g. a question stem
+    // sitting as the first child of the same container as the options.
     const parent = cursor.parentElement;
     if (parent) {
       let stem = '';
@@ -250,8 +270,9 @@ const NODE_PROBE_FN = `function (pad) {
         if (child.nodeType === 3) {
           const t = norm(child.textContent);
           if (t) stem = t;
-        } else if (child.nodeType === 1 && child.tagName !== 'LABEL' &&
-                   child.tagName !== 'INPUT' && child.tagName !== 'BR') {
+        } else if (child.nodeType === 1 &&
+                   !isStructural(child) &&
+                   !isOptionContainer(child)) {
           const t = norm(child.textContent);
           if (t) stem = t;
         }

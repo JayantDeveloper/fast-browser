@@ -1,68 +1,141 @@
+/* fast-browser options — matches sidepanel light theme */
+
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+  --bg: #f7f8fb;
+  --surface: #ffffff;
+  --surface-2: #f1f3f7;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.14);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --accent: #6d28d9;
+  --accent-soft: rgba(109, 40, 217, 0.08);
+  --accent-grad: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%);
+  --green: #047857;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   font-size: 14px;
-  color-scheme: light dark;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  padding: 24px;
+  padding: 40px 24px;
   display: flex;
   justify-content: center;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 main {
-  max-width: 480px;
+  max-width: 520px;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 22px;
+  font-weight: 600;
   margin: 0;
+  letter-spacing: -0.015em;
+  background: var(--accent-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .hint {
-  font-size: 12px;
-  opacity: 0.7;
+  font-size: 13px;
+  color: var(--text-muted);
   margin: 0;
 }
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 fieldset {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  border-radius: 6px;
-  padding: 10px 12px;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 0;
+  background: var(--surface-2);
 }
 
 legend {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.6;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 600;
+  padding: 0 6px;
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 fieldset > label {
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 400;
+}
+
+fieldset > label:has(input[type='radio']) {
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 120ms ease;
+}
+
+fieldset > label:has(input[type='radio']):hover {
+  background: var(--surface);
+}
+
+fieldset > label:has(input[type='password']),
+fieldset > label:has(input[type='text']) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 input[type='text'],
@@ -70,20 +143,60 @@ input[type='password'],
 input[type='number'] {
   font-family: inherit;
   font-size: 14px;
-  padding: 6px 8px;
-  border: 1px solid rgba(127, 127, 127, 0.4);
-  border-radius: 4px;
+  padding: 8px 11px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  width: 100%;
+}
+
+input[type='text']:focus,
+input[type='password']:focus,
+input[type='number']:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input[type='radio'] {
+  accent-color: var(--accent);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
 }
 
 button {
   align-self: flex-start;
-  padding: 8px 16px;
+  padding: 10px 18px;
   font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
+  background: var(--accent-grad);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset,
+    0 1px 3px rgba(124, 58, 237, 0.3);
+  transition: filter 120ms ease, transform 80ms ease;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+button:active {
+  transform: translateY(0.5px);
 }
 
 #save-confirmation {
   align-self: flex-start;
-  font-size: 12px;
-  color: #065f46;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--green);
+  padding: 6px 12px;
+  background: rgba(4, 120, 87, 0.08);
+  border-radius: var(--radius-sm);
 }
