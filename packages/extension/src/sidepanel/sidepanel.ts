@@ -1,11 +1,17 @@
 /**
  * Sidepanel UI controller. No framework — direct DOM updates over a
  * long-lived port to the service worker.
+ *
+ * The port is lazy + self-healing: if the SW gets evicted (MV3 30s
+ * idle kill) the panel transparently reconnects on the next send. This
+ * removes the "Attempting to use a disconnected port object" failure
+ * mode that bites every panel that's been idle for ~half a minute.
  */
 
 import type {
   BackgroundToPanel,
   DoneEvent,
+  PanelToBackground,
   StatusEvent,
   StepEvent,
 } from '../messages.js';
@@ -31,9 +37,47 @@ const els = {
   resultText: document.getElementById('result-text') as HTMLPreElement,
 };
 
-const port = chrome.runtime.connect({ name: PANEL_PORT_NAME });
+let port: chrome.runtime.Port | null = null;
 
-port.onMessage.addListener((msg: BackgroundToPanel) => {
+function connect(): chrome.runtime.Port {
+  const p = chrome.runtime.connect({ name: PANEL_PORT_NAME });
+  p.onMessage.addListener(handleMessage);
+  p.onDisconnect.addListener(() => {
+    // Port died — usually because the SW got evicted. Drop the reference
+    // so the next send lazily reconnects to the fresh SW.
+    port = null;
+  });
+  return p;
+}
+
+function ensurePort(): chrome.runtime.Port {
+  if (!port) {
+    port = connect();
+  }
+  return port;
+}
+
+function safeSend(msg: PanelToBackground): void {
+  try {
+    ensurePort().postMessage(msg);
+    return;
+  } catch {
+    // Port was alive on the panel side but the SW is gone. Recreate
+    // immediately — connecting wakes the SW — and retry once.
+    port = connect();
+    try {
+      port.postMessage(msg);
+    } catch (e) {
+      applyStatus({
+        type: 'status',
+        state: 'error',
+        message: `Could not reach the service worker: ${(e as Error).message}`,
+      });
+    }
+  }
+}
+
+function handleMessage(msg: BackgroundToPanel): void {
   switch (msg.type) {
     case 'status':
       applyStatus(msg);
@@ -47,7 +91,11 @@ port.onMessage.addListener((msg: BackgroundToPanel) => {
     default:
       return;
   }
-});
+}
+
+// Open the port eagerly on load so the SW gets an "idle" status round-trip
+// for free, and the user sees the pill flip to idle immediately.
+ensurePort();
 
 els.run.addEventListener('click', () => {
   const task = els.task.value.trim();
@@ -55,11 +103,11 @@ els.run.addEventListener('click', () => {
     return;
   }
   resetTrace();
-  port.postMessage({ type: 'start', task });
+  safeSend({ type: 'start', task });
 });
 
 els.cancel.addEventListener('click', () => {
-  port.postMessage({ type: 'cancel' });
+  safeSend({ type: 'cancel' });
 });
 
 els.options.addEventListener('click', (e) => {
