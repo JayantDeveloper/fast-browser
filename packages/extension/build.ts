@@ -5,6 +5,7 @@
 
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -21,6 +22,47 @@ const OUT = join(here, 'dist');
 
 const PRODUCTION = process.env['PRODUCTION'] === '1';
 
+/**
+ * Read API keys from the project-root .env for dev builds so the
+ * extension auto-populates the Options form on first launch. Returns
+ * {} in production. Dev builds bake keys directly into the bundle —
+ * do NOT distribute a dev dist/ to anyone else.
+ */
+function readDevKeys(): Record<string, string> {
+  if (PRODUCTION) {
+    return {};
+  }
+  const envPath = join(here, '..', '..', '.env');
+  if (!existsSync(envPath)) {
+    return {};
+  }
+  const fieldMap: Record<string, string> = {
+    ANTHROPIC_API_KEY: 'anthropic',
+    GEMINI_API_KEY: 'gemini',
+    OPENROUTER_API_KEY: 'openrouter',
+  };
+  const out: Record<string, string> = {};
+  for (const raw of readFileSync(envPath, 'utf8').split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+    const eq = line.indexOf('=');
+    if (eq === -1) {
+      continue;
+    }
+    const key = line.slice(0, eq).trim();
+    const value = line.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+    const settingsField = fieldMap[key];
+    if (settingsField && value) {
+      out[settingsField] = value;
+    }
+  }
+  return out;
+}
+
+const DEV_KEYS = readDevKeys();
+
 const COMMON: BuildOptions = {
   bundle: true,
   format: 'esm',
@@ -31,6 +73,7 @@ const COMMON: BuildOptions = {
   logLevel: 'info',
   define: {
     __FB_TEST_HOOK__: PRODUCTION ? 'false' : 'true',
+    __FB_DEV_KEYS__: JSON.stringify(DEV_KEYS),
   },
 };
 
@@ -71,7 +114,15 @@ async function main(): Promise<void> {
   copyIcons();
 
   if (PRODUCTION) {
-    verifyTestHookAbsent(join(OUT, 'background.js'));
+    verifyProductionClean([
+      join(OUT, 'background.js'),
+      join(OUT, 'options.js'),
+      join(OUT, 'sidepanel.js'),
+    ]);
+  } else if (Object.keys(DEV_KEYS).length > 0) {
+    console.log(
+      `  dev keys baked from .env: ${Object.keys(DEV_KEYS).join(', ')}`,
+    );
   }
 
   console.log(
@@ -79,17 +130,32 @@ async function main(): Promise<void> {
   );
 }
 
-/** Sanity-check that the production bundle truly has no test hook. */
-function verifyTestHookAbsent(file: string): void {
-  const src = readFileSync(file, 'utf8');
-  if (src.includes('__fb_test')) {
-    throw new Error(
-      `production build leaked __fb_test into ${file}. ` +
-        `Check that __FB_TEST_HOOK__ is 'false' in COMMON.define and that ` +
-        `the SW source uses if (__FB_TEST_HOOK__) { ... }.`,
-    );
+/**
+ * Sanity-check that the production bundle has no test hook AND no
+ * baked API key material. Failing the build here is much cheaper than
+ * discovering a leaked key in the Web Store zip.
+ */
+function verifyProductionClean(files: string[]): void {
+  const secretPrefixes = ['sk-ant-', 'sk-or-', 'AIzaSy'];
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    if (src.includes('__fb_test')) {
+      throw new Error(
+        `production build leaked __fb_test into ${file}. ` +
+          `Check that __FB_TEST_HOOK__ is 'false' in COMMON.define.`,
+      );
+    }
+    for (const prefix of secretPrefixes) {
+      if (src.includes(prefix)) {
+        throw new Error(
+          `production build leaked an API key (matched "${prefix}") ` +
+            `into ${file}. Check that __FB_DEV_KEYS__ is "{}" when ` +
+            `PRODUCTION=1.`,
+        );
+      }
+    }
   }
-  console.log(`  verified ${file} has no test hook`);
+  console.log(`  verified production bundle has no test hook or baked keys`);
 }
 
 function copyIcons(): void {
