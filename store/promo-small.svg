@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="iconbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background panel -->
+  <rect width="440" height="280" fill="#0f172a"/>
+  <rect width="440" height="280" fill="url(#bg)" opacity="0.18"/>
+
+  <!-- Icon card -->
+  <g transform="translate(28 72)">
+    <rect width="136" height="136" rx="28" fill="url(#iconbg)"/>
+    <!-- Browser dots -->
+    <circle cx="22" cy="28" r="4" fill="#fff" opacity="0.9"/>
+    <circle cx="36" cy="28" r="4" fill="#fff" opacity="0.6"/>
+    <circle cx="50" cy="28" r="4" fill="#fff" opacity="0.4"/>
+    <line x1="14" y1="44" x2="122" y2="44" stroke="#fff" stroke-width="2" opacity="0.4"/>
+    <!-- Lightning bolt -->
+    <path
+      d="M82 56 L52 92 L66 92 L56 116 L92 78 L78 78 L90 56 Z"
+      fill="#ffffff"
+      stroke="#0f172a"
+      stroke-width="2.5"
+      stroke-linejoin="round"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(192 110)">
+    <text font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif"
+          font-size="36"
+          font-weight="700"
+          letter-spacing="-0.02em"
+          fill="#ffffff">fast-browser</text>
+    <text x="0" y="32"
+          font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif"
+          font-size="14"
+          font-weight="500"
+          letter-spacing="0.01em"
+          fill="#94a3b8">Local AI browser agent.</text>
+    <text x="0" y="52"
+          font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif"
+          font-size="14"
+          font-weight="500"
+          letter-spacing="0.01em"
+          fill="#94a3b8">Bring your own API key.</text>
+  </g>
+</svg>
