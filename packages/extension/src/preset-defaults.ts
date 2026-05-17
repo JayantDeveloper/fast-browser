@@ -8,7 +8,9 @@
 
 import type { TaskPreset } from './messages.js';
 
-const ARRS_BATCH_TASK = `Look at the sessions table on this page. You will iterate through it from top to bottom, claiming credit for every row that still has a "Claim Credit" button in its Action column. Rows that are already claimed will show something other than that button (a checkmark, "Claimed" text, or nothing) — skip those.
+const ARRS_BATCH_TASK = `IMPORTANT FIRST STEP: the sessions table on this page is loaded asynchronously and can take a few seconds to appear. Before doing anything else, wait until the page contains visible text matching "Claim Credit" — use the wait_for action with textContains: "Claim Credit" (5-second timeout). If the wait times out, scroll down once and wait again. Do NOT start scrolling around the page until the table with the Claim Credit buttons is visible. If after one wait + one scroll + one more wait there is still no "Claim Credit" text on the page, emit done with "STOPPED: sessions table never loaded".
+
+Once the table is visible, iterate through it from top to bottom, claiming credit for every row that still has a "Claim Credit" button in its Action column. Rows that are already claimed will show something other than that button (a checkmark, "Claimed" text, or nothing) — skip those.
 
 Each evaluation form uses the same template. For every evaluation, fill the form using these RULES. Multiple sub-questions share the same option text, so every radio and checkbox carries a "[question stem] option" prefix to disambiguate.
 
@@ -50,6 +52,7 @@ WORKFLOW PER SESSION:
 - Verify NO "Please select your answer" warnings remain in the visible text. If any do, find which sub-question is unanswered and click the appropriate radio FIRST.
 - Click "Submit and Earn Credit" (or equivalent Submit button).
 - Wait for confirmation. If you are not back on the summary page (URL contains "ClaimCredit/Summary") within 5 seconds, navigate explicitly: goto https://apps.arrs.org/VAM26/ClaimCredit/Summary
+- AFTER LANDING on the summary page, wait_for textContains: "Claim Credit" again (the table reloads asynchronously). Don't start clicking until you can see at least one Claim Credit button.
 - Look at the table again; find the NEXT row with a "Claim Credit" button; repeat.
 
 DONE CONDITION:

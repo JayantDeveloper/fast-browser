@@ -21,15 +21,27 @@ const SRC = join(here, 'src');
 const OUT = join(here, 'dist');
 
 const PRODUCTION = process.env['PRODUCTION'] === '1';
+/**
+ * SHARE mode: like PRODUCTION (minified, no sourcemaps, no test hook)
+ * but KEEPS the .env API keys baked in. Use this to send a self-contained
+ * extension to a single trusted recipient who shouldn't have to configure
+ * anything. Never publish a SHARE build — the recipient's key is in it.
+ */
+const SHARE = process.env['SHARE'] === '1';
+
+const STRIP_TEST_HOOK = PRODUCTION || SHARE;
+const STRIP_KEYS = PRODUCTION;
+const MINIFY = PRODUCTION || SHARE;
+const SOURCEMAPS = !PRODUCTION && !SHARE;
 
 /**
- * Read API keys from the project-root .env for dev builds so the
+ * Read API keys from the project-root .env for dev / SHARE builds so the
  * extension auto-populates the Options form on first launch. Returns
- * {} in production. Dev builds bake keys directly into the bundle —
- * do NOT distribute a dev dist/ to anyone else.
+ * {} in production. Builds that keep keys (dev / SHARE) bake them
+ * directly into the bundle — do NOT distribute those broadly.
  */
 function readDevKeys(): Record<string, string> {
-  if (PRODUCTION) {
+  if (STRIP_KEYS) {
     return {};
   }
   const envPath = join(here, '..', '..', '.env');
@@ -68,11 +80,11 @@ const COMMON: BuildOptions = {
   format: 'esm',
   target: 'chrome116',
   platform: 'browser',
-  sourcemap: !PRODUCTION,
-  minify: PRODUCTION,
+  sourcemap: SOURCEMAPS,
+  minify: MINIFY,
   logLevel: 'info',
   define: {
-    __FB_TEST_HOOK__: PRODUCTION ? 'false' : 'true',
+    __FB_TEST_HOOK__: STRIP_TEST_HOOK ? 'false' : 'true',
     __FB_DEV_KEYS__: JSON.stringify(DEV_KEYS),
   },
 };
@@ -120,14 +132,34 @@ async function main(): Promise<void> {
       join(OUT, 'sidepanel.js'),
     ]);
   } else if (Object.keys(DEV_KEYS).length > 0) {
-    console.log(
-      `  dev keys baked from .env: ${Object.keys(DEV_KEYS).join(', ')}`,
-    );
+    const label = SHARE ? 'baked into SHARE build' : 'baked from .env';
+    console.log(`  keys ${label}: ${Object.keys(DEV_KEYS).join(', ')}`);
   }
 
-  console.log(
-    `✔ extension bundled at ${OUT}${PRODUCTION ? ' (production)' : ' (dev)'}`,
-  );
+  if (SHARE) {
+    verifyTestHookStripped([
+      join(OUT, 'background.js'),
+      join(OUT, 'options.js'),
+      join(OUT, 'sidepanel.js'),
+    ]);
+  }
+
+  const mode = PRODUCTION ? 'production' : SHARE ? 'SHARE' : 'dev';
+  console.log(`✔ extension bundled at ${OUT} (${mode})`);
+}
+
+/** Sanity-check that a SHARE build has no test hook (keys are expected). */
+function verifyTestHookStripped(files: string[]): void {
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    if (src.includes('__fb_test')) {
+      throw new Error(
+        `SHARE build leaked __fb_test into ${file}. ` +
+          `Check that __FB_TEST_HOOK__ define resolved to 'false'.`,
+      );
+    }
+  }
+  console.log(`  verified SHARE bundle has no test hook`);
 }
 
 /**
