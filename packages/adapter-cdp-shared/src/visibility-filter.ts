@@ -129,14 +129,20 @@ async function probeNodes(
  * both visibility and an optional derived label. Defined as a source
  * string because Runtime.callFunctionOn requires source text.
  *
- * Label derivation cascade (first non-empty wins):
+ * Label derivation cascade for inputs (first match wins for the BASE
+ * label):
  *   1. `this.labels[0].textContent` — <label for="id"> association
  *   2. `closest('label').textContent` — <label> ancestor
- *   3. `this.value` for inputs that carry user-visible text
+ *   3. `this.value` for non-checkbox/non-radio inputs that carry text
  *   4. `this.placeholder`
- *   5. Adjacent text-node siblings (handles labels written as raw text
- *      next to the input, which the ARRS CME forms use)
+ *   5. Adjacent text-node siblings
  *   6. Trimmed parent.textContent as a last resort
+ *
+ * For radio/checkbox inputs, also derives a QUESTION CONTEXT prefix by
+ * walking up the DOM and finding the nearest non-option text above this
+ * input's <label>. This disambiguates same-named options across
+ * sub-questions ("To a Great Degree" repeated 4 times in one Q1 group
+ * becomes "[Improve my current knowledge] To a Great Degree" etc).
  *
  * Strings longer than 200 chars are dropped — a "label" that long is
  * almost certainly a whole container's contents, not a real label.
@@ -164,43 +170,105 @@ const NODE_PROBE_FN = `function (pad) {
     return { visible: true };
   }
 
-  const norm = (s) => (s || '').replace(/\\s+/g, ' ').trim();
-  const cap = (s) => (s && s.length <= 200) ? s : '';
+  const norm = (str) => (str || '').replace(/\\s+/g, ' ').trim();
+  const cap = (str) => (str && str.length <= 200) ? str : '';
 
-  // 1. associated <label for=...>
+  // ---- BASE LABEL ----
+  let base = '';
+  let labelEl = null;
   if (this.labels && this.labels.length > 0) {
-    const t = cap(norm(this.labels[0].textContent));
-    if (t) return { visible: true, derivedName: t };
+    base = cap(norm(this.labels[0].textContent));
+    labelEl = this.labels[0];
   }
-  // 2. <label> ancestor (the ARRS pattern: <label><input> Text</label>)
-  const lbl = this.closest && this.closest('label');
-  if (lbl) {
-    const t = cap(norm(lbl.textContent));
-    if (t) return { visible: true, derivedName: t };
+  if (!base) {
+    const lbl = this.closest && this.closest('label');
+    if (lbl) {
+      base = cap(norm(lbl.textContent));
+      labelEl = lbl;
+    }
   }
-  // 3. value / placeholder
-  const v = norm(this.value);
-  if (v && tag !== 'INPUT' || (v && this.type !== 'radio' && this.type !== 'checkbox')) {
-    return { visible: true, derivedName: cap(v) };
+  if (!base) {
+    const isToggle = tag === 'INPUT' &&
+      (this.type === 'radio' || this.type === 'checkbox');
+    if (!isToggle) {
+      const v = norm(this.value);
+      if (v) base = cap(v);
+    }
+    if (!base) {
+      const ph = norm(this.placeholder);
+      if (ph) base = cap(ph);
+    }
   }
-  const ph = norm(this.placeholder);
-  if (ph) return { visible: true, derivedName: cap(ph) };
+  if (!base) {
+    let sib = this.nextSibling;
+    while (sib && sib.nodeType === 3 && !norm(sib.textContent)) {
+      sib = sib.nextSibling;
+    }
+    if (sib && sib.nodeType === 3) {
+      base = cap(norm(sib.textContent));
+    }
+  }
+  if (!base && this.parentElement) {
+    base = cap(norm(this.parentElement.textContent));
+  }
 
-  // 4. Adjacent text-node sibling (input followed by raw text)
-  let sib = this.nextSibling;
-  while (sib && sib.nodeType === 3 && !norm(sib.textContent)) {
-    sib = sib.nextSibling;
-  }
-  if (sib && sib.nodeType === 3) {
-    const t = cap(norm(sib.textContent));
-    if (t) return { visible: true, derivedName: t };
+  // ---- CONTEXT PREFIX (radios + checkboxes only) ----
+  const isToggle = tag === 'INPUT' &&
+    (this.type === 'radio' || this.type === 'checkbox');
+  if (!isToggle) {
+    return base ? { visible: true, derivedName: base } : { visible: true };
   }
 
-  // 5. Parent's text content as last resort
-  if (this.parentElement) {
-    const t = cap(norm(this.parentElement.textContent));
-    if (t) return { visible: true, derivedName: t };
+  // Walk up from the input's label, looking at PREVIOUS siblings at
+  // each level for text that isn't itself an option label. The first
+  // such text is the question stem for this group.
+  let context = '';
+  let cursor = labelEl || this;
+  for (let depth = 0; depth < 6 && cursor && cursor.parentElement; depth++) {
+    let sib = cursor.previousElementSibling;
+    while (sib) {
+      if (sib.tagName !== 'LABEL' && sib.tagName !== 'INPUT' &&
+          sib.tagName !== 'BR' && sib.tagName !== 'SCRIPT' &&
+          sib.tagName !== 'STYLE') {
+        const t = cap(norm(sib.textContent));
+        if (t && t !== base) {
+          context = t;
+          break;
+        }
+      }
+      sib = sib.previousElementSibling;
+    }
+    if (context) break;
+    // Also check if the parent has direct text-node children before
+    // the cursor — e.g. "Improve my performance" as a text node
+    // followed by labels.
+    const parent = cursor.parentElement;
+    if (parent) {
+      let stem = '';
+      for (const child of parent.childNodes) {
+        if (child === cursor) break;
+        if (child.nodeType === 3) {
+          const t = norm(child.textContent);
+          if (t) stem = t;
+        } else if (child.nodeType === 1 && child.tagName !== 'LABEL' &&
+                   child.tagName !== 'INPUT' && child.tagName !== 'BR') {
+          const t = norm(child.textContent);
+          if (t) stem = t;
+        }
+      }
+      if (stem && stem !== base && stem.length <= 200) {
+        context = stem;
+        break;
+      }
+    }
+    cursor = cursor.parentElement;
   }
 
-  return { visible: true };
+  if (context) {
+    return {
+      visible: true,
+      derivedName: '[' + context + '] ' + (base || '?'),
+    };
+  }
+  return base ? { visible: true, derivedName: base } : { visible: true };
 }`;

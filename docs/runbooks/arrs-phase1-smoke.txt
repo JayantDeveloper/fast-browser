@@ -1,39 +1,43 @@
 Find the row for "AWE01 - Award Winning Exhibits - Vascular/Interventional Rad." in the sessions table. Click its "Claim Credit" button. An evaluation form will open.
 
-The evaluation has 5 questions. Fill them in EXACTLY as follows. For each question, find the corresponding label text in the visible text section, then click the radio button or checkbox whose name matches the answer below.
+The evaluation has 5 questions. Multiple sub-questions share the same option text ("To a Great Degree", "Somewhat", "I am very comfortable.", etc.), so radios and checkboxes are labeled with a question-stem prefix in square brackets, e.g. "[Improve my current knowledge] To a Great Degree". Match the bracketed prefix to know which sub-question you are answering.
 
-QUESTION 1 — "Participation in this activity will:" (4 sub-questions, each a radio)
-- For "Improve my current knowledge", click the radio labeled "To a Great Degree"
-- For "Improve my competence", click the radio labeled "To a Great Degree"
-- For "Improve my performance", click the radio labeled "Somewhat"
-- For "Improve my patients' outcomes", click the radio labeled "To a Great Degree"
+ANSWER EVERY ONE OF THE FOLLOWING — do NOT submit until all 9 radio choices and 2 checkboxes below have been clicked.
 
-QUESTION 2 — "Action I will take based on my participation..." (checkboxes, check all that apply)
-- Check ONLY this one: "This activity validated my current practice. I will not make any changes to my practice"
-- Leave the other three unchecked.
+QUESTION 1 — "Participation in this activity will:" (4 radio sub-questions)
+1. Click radio "[Improve my current knowledge] To a Great Degree"
+2. Click radio "[Improve my competence] To a Great Degree"
+3. Click radio "[Improve my performance] Somewhat"
+4. Click radio "[Improve my patients' outcomes] To a Great Degree"
 
-QUESTION 3 — "This activity was objective, scientifically rigorous and free of commercial bias." (single radio)
-- Click "Completely"
+QUESTION 2 — "Action I will take..." (checkboxes)
+5. Click checkbox "[Action I will take...] This activity validated my current practice. I will not make any changes to my practice"
+   (Match by the substring "validated my current practice" — leave the other 3 unchecked.)
 
-QUESTION 4 — "Barriers to implementing the strategies..." (checkboxes)
-- Check ONLY: "No Barriers"
-- Leave all other barriers unchecked.
+QUESTION 3 — "scientifically rigorous and free of commercial bias" (1 radio)
+6. Click radio "[...scientifically rigorous and free of commercial bias...] Completely"
+   (Match by the substring "Completely" within question 3's context — there is only one such radio.)
 
-QUESTION 5 — "Please indicate your comfort level with the following:" (2 sub-questions, each a radio)
-- For "I can discuss key radiologic findings in vascular/interventional imaging.", click "I am very comfortable."
-- For "I can describe commonly encountered clinical scenarios in vascular/interventional imaging.", click "I am very comfortable."
+QUESTION 4 — "Barriers to implementing..." (checkboxes)
+7. Click checkbox "[Barriers to implementing...] No Barriers"
 
-AFTER ALL FIVE QUESTIONS ARE ANSWERED:
+QUESTION 5 — "Please indicate your comfort level..." (2 radio sub-questions)
+8. Click radio "[I can discuss key radiologic findings in vascular/interventional imaging.] I am very comfortable."
+9. Click radio "[I can describe commonly encountered clinical scenarios in vascular/interventional imaging.] I am very comfortable."
+
+AFTER ALL 9 ACTIONS ABOVE:
 - Scroll to the bottom of the form if needed.
+- Verify in the visible text section that NO "Please select your answer" warnings are present. If any are still showing, find which sub-question they belong to and click the appropriate radio FIRST before submitting.
 - Click the button labeled "Submit and Earn Credit" (or whatever Submit-style button exists at the bottom).
 - Wait for confirmation: either a success message appears, or you are returned to the summary page.
 
 WHEN DONE:
 - Emit done with the result "Claimed AWE01" — exactly that string.
 
-HARD STOPS (don't scroll forever):
-- If you have scrolled 3 times without finding a new interactive element you can act on, EMIT DONE with the result "STOPPED: cannot find <describe what you were looking for>". Do NOT keep scrolling indefinitely.
-- If a radio button label you're looking for is not in the current INTERACTIVE ELEMENTS list (e.g. "To a Great Degree" radio not present), do NOT keep scrolling — emit done with "STOPPED: radio for <which question> not in AxTree".
-- If a question has options that don't match what's listed above (different wording), emit done with "STOPPED: unexpected option text in question <N>: <what you saw>".
+HARD STOPS:
+- If you have scrolled 3 times in a row without clicking anything, EMIT DONE with "STOPPED: cannot find <which radio you were looking for>".
+- If the bracketed-prefix label you need is not in the current INTERACTIVE ELEMENTS list, emit done with "STOPPED: radio/checkbox for <which question> not visible". Do NOT click a radio with a different prefix as a substitute.
+- If a question has options that don't match what's listed above, emit done with "STOPPED: unexpected option text in question <N>: <what you saw>".
 - Do NOT click Cancel or Back.
 - Do NOT navigate away from the evaluation form until you have submitted it.
+- COUNT your clicks: you must have clicked 9 items total before clicking Submit. If you have fewer than 9, you are not done.
