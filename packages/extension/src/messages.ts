@@ -8,6 +8,19 @@ import type { TrajectoryStep } from '@fast-browser/core';
 
 export type ProviderName = 'anthropic' | 'gemini' | 'openrouter';
 
+export interface TaskPreset {
+  /** Stable identifier — used to remember "last selected". */
+  id: string;
+  /** Display name in the dropdown. */
+  name: string;
+  /** Optional starting URL — agent navigates here before the loop. */
+  url?: string;
+  /** The task description sent to the model. */
+  task: string;
+  /** Optional per-preset max-steps override (defaults to settings.maxSteps). */
+  maxStepsOverride?: number;
+}
+
 export interface AgentSettings {
   provider: ProviderName;
   model: string;
@@ -17,6 +30,10 @@ export interface AgentSettings {
    */
   apiKeys: Partial<Record<ProviderName, string>>;
   maxSteps: number;
+  /** Saved task presets that show up in the sidepanel dropdown. */
+  presets: TaskPreset[];
+  /** ID of the last-selected preset; auto-applied on panel open. */
+  lastPresetId?: string;
 }
 
 export interface StartTaskMessage {
@@ -24,6 +41,8 @@ export interface StartTaskMessage {
   task: string;
   /** Optional starting URL — defaults to the active tab as-is. */
   url?: string;
+  /** Optional per-run max-steps override (from preset). */
+  maxStepsOverride?: number;
 }
 
 export interface CancelTaskMessage {

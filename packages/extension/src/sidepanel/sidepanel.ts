@@ -6,6 +6,10 @@
  * idle kill) the panel transparently reconnects on the next send. This
  * removes the "Attempting to use a disconnected port object" failure
  * mode that bites every panel that's been idle for ~half a minute.
+ *
+ * Presets are loaded from chrome.storage.local; the last-selected
+ * preset auto-fills the task textarea on panel open so the user can
+ * click Run immediately.
  */
 
 import type {
@@ -14,8 +18,10 @@ import type {
   PanelToBackground,
   StatusEvent,
   StepEvent,
+  TaskPreset,
 } from '../messages.js';
 import { PANEL_PORT_NAME } from '../messages.js';
+import { loadSettings, rememberLastPreset } from '../settings-storage.js';
 
 const STATUS_LABELS: Record<StatusEvent['state'], string> = {
   idle: 'idle',
@@ -25,6 +31,7 @@ const STATUS_LABELS: Record<StatusEvent['state'], string> = {
 };
 
 const els = {
+  preset: document.getElementById('preset') as HTMLSelectElement,
   task: document.getElementById('task') as HTMLTextAreaElement,
   run: document.getElementById('run') as HTMLButtonElement,
   cancel: document.getElementById('cancel') as HTMLButtonElement,
@@ -38,13 +45,12 @@ const els = {
 };
 
 let port: chrome.runtime.Port | null = null;
+let presets: TaskPreset[] = [];
 
 function connect(): chrome.runtime.Port {
   const p = chrome.runtime.connect({ name: PANEL_PORT_NAME });
   p.onMessage.addListener(handleMessage);
   p.onDisconnect.addListener(() => {
-    // Port died — usually because the SW got evicted. Drop the reference
-    // so the next send lazily reconnects to the fresh SW.
     port = null;
   });
   return p;
@@ -62,8 +68,6 @@ function safeSend(msg: PanelToBackground): void {
     ensurePort().postMessage(msg);
     return;
   } catch {
-    // Port was alive on the panel side but the SW is gone. Recreate
-    // immediately — connecting wakes the SW — and retry once.
     port = connect();
     try {
       port.postMessage(msg);
@@ -93,9 +97,13 @@ function handleMessage(msg: BackgroundToPanel): void {
   }
 }
 
-// Open the port eagerly on load so the SW gets an "idle" status round-trip
-// for free, and the user sees the pill flip to idle immediately.
 ensurePort();
+void hydratePresets();
+
+els.preset.addEventListener('change', () => {
+  applyPreset(els.preset.value);
+  void rememberLastPreset(els.preset.value);
+});
 
 els.run.addEventListener('click', () => {
   const task = els.task.value.trim();
@@ -103,7 +111,15 @@ els.run.addEventListener('click', () => {
     return;
   }
   resetTrace();
-  safeSend({ type: 'start', task });
+  const preset = currentPreset();
+  const msg: PanelToBackground = { type: 'start', task };
+  if (preset?.url) {
+    msg.url = preset.url;
+  }
+  if (preset?.maxStepsOverride) {
+    msg.maxStepsOverride = preset.maxStepsOverride;
+  }
+  safeSend(msg);
 });
 
 els.cancel.addEventListener('click', () => {
@@ -114,6 +130,41 @@ els.options.addEventListener('click', (e) => {
   e.preventDefault();
   chrome.runtime.openOptionsPage();
 });
+
+async function hydratePresets(): Promise<void> {
+  const settings = await loadSettings();
+  presets = settings.presets;
+
+  // Wipe everything past the "Custom task" placeholder option, then
+  // rebuild from current presets.
+  while (els.preset.options.length > 1) {
+    els.preset.remove(1);
+  }
+  for (const p of presets) {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    els.preset.appendChild(opt);
+  }
+
+  const initial = settings.lastPresetId ?? presets[0]?.id ?? '';
+  els.preset.value = initial;
+  applyPreset(initial);
+}
+
+function applyPreset(id: string): void {
+  if (!id) {
+    return;
+  }
+  const preset = presets.find((p) => p.id === id);
+  if (preset) {
+    els.task.value = preset.task;
+  }
+}
+
+function currentPreset(): TaskPreset | undefined {
+  return presets.find((p) => p.id === els.preset.value);
+}
 
 function applyStatus(msg: StatusEvent): void {
   els.statusPill.textContent = STATUS_LABELS[msg.state];

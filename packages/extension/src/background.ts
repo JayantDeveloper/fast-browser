@@ -87,7 +87,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 function handlePanelMessage(msg: PanelToBackground): void {
   switch (msg.type) {
     case 'start':
-      void handleStart(msg.task, msg.url);
+      void handleStart(msg.task, msg.url, msg.maxStepsOverride);
       return;
     case 'cancel':
       cancelRequested = true;
@@ -98,7 +98,11 @@ function handlePanelMessage(msg: PanelToBackground): void {
   }
 }
 
-async function handleStart(task: string, url?: string): Promise<void> {
+async function handleStart(
+  task: string,
+  url?: string,
+  maxStepsOverride?: number,
+): Promise<void> {
   if (runInFlight) {
     emit({ type: 'status', state: 'error', message: 'A task is already running.' });
     return;
@@ -137,7 +141,7 @@ async function handleStart(task: string, url?: string): Promise<void> {
         driver,
         {
           actor,
-          maxSteps: settings.maxSteps,
+          maxSteps: maxStepsOverride ?? settings.maxSteps,
           onStep: (step) => {
             emit({ type: 'step', step });
             // Fire-and-forget — we don't want a slow chrome.storage write to

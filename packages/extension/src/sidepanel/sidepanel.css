@@ -118,6 +118,36 @@ label {
   box-shadow: var(--shadow-sm);
 }
 
+select#preset {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 32px 8px 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'><path d='M3 4.5L6 7.5L9 4.5' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  transition: border-color 120ms ease, background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+select#preset:hover {
+  border-color: var(--border-strong);
+}
+
+select#preset:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 textarea {
   width: 100%;
   font-family: inherit;

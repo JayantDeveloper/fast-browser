@@ -47,7 +47,11 @@ async function save(): Promise<void> {
   if (!knownProviders().includes(provider)) {
     return;
   }
+  // Preserve fields the Options form doesn't manage (presets,
+  // lastPresetId) by merging into the currently-loaded settings.
+  const current = await loadSettings();
   await saveSettings({
+    ...current,
     provider,
     model: els.model.value.trim() || DEFAULT_SETTINGS.model,
     maxSteps: clampMaxSteps(Number(els.maxSteps.value)),

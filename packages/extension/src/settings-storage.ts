@@ -8,6 +8,7 @@
  */
 
 import type { AgentSettings, ProviderName } from './messages.js';
+import { DEFAULT_PRESETS } from './preset-defaults.js';
 
 declare const __FB_DEV_KEYS__: Record<string, string>;
 
@@ -22,6 +23,8 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   model: 'claude-haiku-4-5',
   apiKeys: {},
   maxSteps: 60,
+  presets: DEFAULT_PRESETS,
+  lastPresetId: DEFAULT_PRESETS[0]?.id ?? '',
 };
 
 export function knownProviders(): ProviderName[] {
@@ -34,6 +37,9 @@ export async function loadSettings(): Promise<AgentSettings> {
   // Precedence: user-saved > dev-env > defaults. Dev keys fill in the
   // blanks but never override a key the user explicitly typed (or
   // explicitly cleared and saved).
+  // Presets: if the user has saved any, use those; otherwise show the
+  // shipped defaults. Bumping DEFAULT_PRESETS in a release does NOT
+  // overwrite a user's custom list — that's intentional.
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
@@ -42,9 +48,20 @@ export async function loadSettings(): Promise<AgentSettings> {
       ...devKeys(),
       ...stored?.apiKeys,
     },
+    presets: stored?.presets ?? DEFAULT_SETTINGS.presets,
+    lastPresetId: stored?.lastPresetId ?? DEFAULT_SETTINGS.lastPresetId,
   };
 }
 
 export async function saveSettings(settings: AgentSettings): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEY]: settings });
+}
+
+/**
+ * Update only the lastPresetId without rewriting the whole settings
+ * blob. Used by the sidepanel when the user picks a preset.
+ */
+export async function rememberLastPreset(presetId: string): Promise<void> {
+  const current = await loadSettings();
+  await saveSettings({ ...current, lastPresetId: presetId });
 }

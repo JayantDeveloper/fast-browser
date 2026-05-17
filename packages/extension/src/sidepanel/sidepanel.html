@@ -12,11 +12,16 @@
     </header>
 
     <section id="task-section">
+      <label for="preset">Preset</label>
+      <select id="preset">
+        <option value="">Custom task</option>
+      </select>
+
       <label for="task">Task</label>
       <textarea
         id="task"
-        rows="4"
-        placeholder="e.g. Find the top story on Hacker News and tell me its title and points."
+        rows="5"
+        placeholder="Pick a preset above, or type a custom task here."
       ></textarea>
       <div class="row">
         <button id="run">Run on active tab</button>
