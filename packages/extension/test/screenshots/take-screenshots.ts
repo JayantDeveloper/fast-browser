@@ -1,13 +1,22 @@
 /**
- * Generates Chrome Web Store marketing screenshots at 1280x800.
+ * Chrome Web Store marketing screenshots at 1280×800.
  *
- * Strategy: load each entrypoint HTML directly as a regular page, then
- * inject the DOM state we want to showcase. We avoid relying on the
- * chrome.runtime port plumbing (which is finicky to mock across page
- * navigations) by writing the trajectory cards into the DOM directly.
+ * Each shot composites a real target-page screenshot (left ~880px) with
+ * the actual sidepanel HTML rendered at its real ~400px width (right),
+ * inside a faux browser chrome so the panel feels docked rather than
+ * floating on a blank canvas.
+ *
+ * Run: pnpm --filter @fast-browser/extension exec tsx test/screenshots/take-screenshots.ts
+ * Output: packages/extension/test/screenshots/out/*.png
  */
 
-import { mkdirSync, mkdtempSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,27 +24,33 @@ import { fileURLToPath } from 'node:url';
 import { chromium, type BrowserContext } from 'playwright';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const EXTENSION_DIST = join(here, '..', '..', 'dist');
+const EXT_DIST = join(here, '..', '..', 'dist');
 const OUT_DIR = join(here, 'out');
 
-const VIEWPORT = { width: 1280, height: 800 };
+const CANVAS = { width: 1280, height: 800 };
+const TARGET_WIDTH = 868;
+const PANEL_WIDTH = 412;
+const CHROME_HEADER_H = 36;
+
+const TARGET_URL = 'https://news.ycombinator.com';
+const TASK_TEXT =
+  'Find the top story on Hacker News and tell me its title and points.';
 
 interface MockStep {
   index: number;
   type: string;
   ok: boolean;
-  errorCode?: string;
   summary: string;
   latencyMs: number;
   costUsd: number;
 }
 
-const MOCK_STEPS: MockStep[] = [
+const STEPS: MockStep[] = [
   {
     index: 1,
     type: 'click',
     ok: true,
-    summary: "clicked link 'Project Gutenberg – keeps getting better'",
+    summary: "clicked link 'Project Gutenberg keeps getting better'",
     latencyMs: 712,
     costUsd: 0.001724,
   },
@@ -51,179 +66,273 @@ const MOCK_STEPS: MockStep[] = [
     index: 3,
     type: 'done',
     ok: true,
-    summary: 'Project Gutenberg – keeps getting better — 813 points',
+    summary: 'Project Gutenberg — keeps getting better — 813 points',
     latencyMs: 824,
     costUsd: 0.002338,
   },
 ];
-
-const TASK_TEXT =
-  'Find the top story on Hacker News and tell me its title and points.';
 
 async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
   const userDataDir = mkdtempSync(join(tmpdir(), 'fb-screens-'));
 
   const context = await chromium.launchPersistentContext(userDataDir, {
-    headless: false,
-    viewport: VIEWPORT,
+    headless: true,
+    viewport: CANVAS,
     args: [
-      `--disable-extensions-except=${EXTENSION_DIST}`,
-      `--load-extension=${EXTENSION_DIST}`,
-      `--window-size=${VIEWPORT.width},${VIEWPORT.height}`,
+      `--disable-extensions-except=${EXT_DIST}`,
+      `--load-extension=${EXT_DIST}`,
       '--no-first-run',
       '--no-default-browser-check',
     ],
   });
 
   try {
-    const extensionId = await resolveExtensionId(context);
-    console.log(`extension id: ${extensionId}`);
+    const targetShot = await captureTarget(context);
+    const panelHtml = readFileSync(join(EXT_DIST, 'sidepanel.html'), 'utf8');
+    const panelCss = readFileSync(join(EXT_DIST, 'sidepanel.css'), 'utf8');
 
-    await captureSidePanel(context, extensionId, 'idle');
-    await captureSidePanel(context, extensionId, 'running');
-    await captureSidePanel(context, extensionId, 'done');
-    await captureOptions(context, extensionId);
+    for (const state of ['idle', 'running', 'done'] as const) {
+      await renderComposite(context, targetShot, panelHtml, panelCss, state);
+    }
+    await renderOptions(context);
 
-    console.log(`✔ screenshots written to ${OUT_DIR}`);
+    console.log(`✔ marketing screenshots written to ${OUT_DIR}`);
   } finally {
     await context.close();
   }
 }
 
-async function resolveExtensionId(context: BrowserContext): Promise<string> {
-  const sw = context.serviceWorkers()[0]
-    ?? await context.waitForEvent('serviceworker');
-  return new URL(sw.url()).host;
+async function captureTarget(context: BrowserContext): Promise<string> {
+  const page = await context.newPage();
+  await page.setViewportSize({
+    width: TARGET_WIDTH,
+    height: CANVAS.height - CHROME_HEADER_H,
+  });
+  await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1500);
+  const path = join(OUT_DIR, '_target.png');
+  await page.screenshot({ path, type: 'png' });
+  await page.close();
+  return path;
 }
 
 type PanelState = 'idle' | 'running' | 'done';
 
-async function captureSidePanel(
+async function renderComposite(
   context: BrowserContext,
-  extensionId: string,
+  targetShotPath: string,
+  panelHtml: string,
+  panelCss: string,
   state: PanelState,
 ): Promise<void> {
-  const page = await context.newPage();
-  await page.setViewportSize(VIEWPORT);
-
-  // Stub chrome.runtime to a no-op so the panel script doesn't throw on
-  // chrome.runtime.connect; we paint the visual state directly afterwards.
-  await page.addInitScript(() => {
-    (globalThis as unknown as { chrome: unknown }).chrome = {
-      runtime: {
-        connect: () => ({
-          onMessage: { addListener: () => {/* no-op */} },
-          postMessage: () => {/* no-op */},
-          disconnect: () => {/* no-op */},
-        }),
-        openOptionsPage: () => {/* no-op */},
-      },
-    };
+  const panelBody = extractBody(panelHtml);
+  const html = buildCompositeHtml({
+    targetDataUri: pngToDataUri(targetShotPath),
+    panelBody,
+    panelCss,
+    state,
   });
 
-  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  await page.waitForSelector('#task');
+  const tmpFile = join(OUT_DIR, `_composite-${state}.html`);
+  writeFileSync(tmpFile, html);
 
-  await page.evaluate(
-    ({ state, task, steps }) => {
-      const taskEl = document.getElementById('task') as HTMLTextAreaElement;
-      taskEl.value = task;
+  const page = await context.newPage();
+  await page.setViewportSize(CANVAS);
+  await page.goto(`file://${tmpFile}`);
+  await page.waitForSelector('#run');
+  await page.evaluate(applyPanelState, { state, task: TASK_TEXT, steps: STEPS });
+  await page.waitForTimeout(150);
 
-      const pill = document.getElementById('status-pill') as HTMLElement;
-      const statusMsg = document.getElementById('status-message') as HTMLElement;
-      const trace = document.getElementById('trace') as HTMLOListElement;
-      const resultSection = document.getElementById('result-section') as HTMLElement;
-      const resultSummary = document.getElementById('result-summary') as HTMLElement;
-      const resultText = document.getElementById('result-text') as HTMLElement;
-
-      const labels: Record<typeof state, string> = {
-        idle: 'idle',
-        running: 'running',
-        done: 'done',
-      };
-      pill.textContent = labels[state];
-      pill.className = `pill ${state}`;
-      statusMsg.textContent =
-        state === 'running' ? 'step 3 of ~3 · 2.3s elapsed' : '';
-
-      if (state === 'idle') {
-        return;
-      }
-
-      const stepsToRender = state === 'done'
-        ? steps
-        : steps.slice(0, steps.length - 1);
-
-      for (const s of stepsToRender) {
-        const li = document.createElement('li');
-        li.className = s.ok ? 'step-ok' : 'step-fail';
-        const tag = s.ok ? '✓' : `✗(${s.errorCode ?? 'err'})`;
-        const cost = s.costUsd
-          ? `$${s.costUsd.toFixed(6)}`
-          : '';
-        li.innerHTML =
-          `<strong>${s.type}</strong> ${tag} ` +
-          `<span class="step-meta">${s.latencyMs}ms ${cost}</span><br>` +
-          `<span>${s.summary}</span>`;
-        trace.appendChild(li);
-      }
-
-      if (state === 'done') {
-        resultSection.hidden = false;
-        resultSummary.textContent =
-          'success • 3 steps • 6.1s • $0.0053';
-        resultText.textContent =
-          'Project Gutenberg – keeps getting better — 813 points';
-      }
-    },
-    { state, task: TASK_TEXT, steps: MOCK_STEPS },
-  );
-
-  await page.waitForTimeout(250);
   const out = join(OUT_DIR, `sidepanel-${state}.png`);
   await page.screenshot({ path: out, type: 'png' });
   console.log(`  wrote ${out}`);
   await page.close();
 }
 
-async function captureOptions(
-  context: BrowserContext,
-  extensionId: string,
-): Promise<void> {
+async function renderOptions(context: BrowserContext): Promise<void> {
+  const optionsHtml = readFileSync(join(EXT_DIST, 'options.html'), 'utf8');
+  const optionsCss = readFileSync(join(EXT_DIST, 'options.css'), 'utf8');
+  const body = extractBody(optionsHtml);
+
+  const html = buildOptionsHtml({ body, css: optionsCss });
+  const tmpFile = join(OUT_DIR, '_options.html');
+  writeFileSync(tmpFile, html);
+
   const page = await context.newPage();
-  await page.setViewportSize(VIEWPORT);
+  await page.setViewportSize(CANVAS);
+  await page.goto(`file://${tmpFile}`);
+  await page.waitForSelector('#model');
+  await page.evaluate(applyOptionsState);
+  await page.waitForTimeout(150);
 
-  await page.addInitScript(() => {
-    const settings = {
-      provider: 'anthropic',
-      model: 'claude-haiku-4-5',
-      maxSteps: 60,
-      apiKeys: {
-        anthropic: 'sk-ant-•••••••••••••••••••••••••••••••••••',
-        gemini: '',
-        openrouter: '',
-      },
-    };
-    (globalThis as unknown as { chrome: unknown }).chrome = {
-      storage: {
-        local: {
-          get: () => Promise.resolve({ fastBrowserSettings: settings }),
-          set: () => Promise.resolve(),
-        },
-      },
-    };
-  });
-
-  await page.goto(`chrome-extension://${extensionId}/options.html`);
-  await page.waitForTimeout(500);
   const out = join(OUT_DIR, 'options.png');
   await page.screenshot({ path: out, type: 'png' });
   console.log(`  wrote ${out}`);
   await page.close();
 }
 
-void main().catch((e) => {
+function extractBody(html: string): string {
+  const m = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return m?.[1] ?? '';
+}
+
+function pngToDataUri(path: string): string {
+  const bytes = readFileSync(path);
+  return `data:image/png;base64,${bytes.toString('base64')}`;
+}
+
+function buildCompositeHtml(args: {
+  targetDataUri: string;
+  panelBody: string;
+  panelCss: string;
+  state: PanelState;
+}): string {
+  return `<!doctype html>
+<html><head>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin: 0; padding: 0; background: #1f2937; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; }
+    .canvas { width: 1280px; height: 800px; display: flex; flex-direction: column; background: #1f2937; }
+    .header { height: ${CHROME_HEADER_H}px; background: #e5e7eb; display: flex; align-items: center; padding: 0 14px; gap: 8px; border-bottom: 1px solid #cbd5e1; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot.r { background: #ef4444; }
+    .dot.y { background: #f59e0b; }
+    .dot.g { background: #10b981; }
+    .urlbar { flex: 1; height: 22px; margin-left: 14px; background: #fff; border-radius: 11px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #475569; font-family: ui-monospace, 'SF Mono', monospace; }
+    .stage { flex: 1; display: flex; }
+    .target { width: ${TARGET_WIDTH}px; height: 100%; background-image: url('${args.targetDataUri}'); background-size: cover; background-position: top left; background-repeat: no-repeat; }
+    .panel { width: ${PANEL_WIDTH}px; height: 100%; border-left: 1px solid #cbd5e1; overflow: hidden; background: #f7f8fb; }
+    /* embedded sidepanel css */
+    ${args.panelCss}
+    /* override: kill height: 100vh so the panel doesn't try to extend past the stage */
+    body { min-height: auto !important; padding: 14px !important; height: ${CANVAS.height - CHROME_HEADER_H}px !important; box-sizing: border-box !important; overflow: hidden; }
+    /* the panel CSS uses body styles; we re-scope them under .panel-wrap */
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="header">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <div class="urlbar">${
+        args.state === 'idle' ? 'news.ycombinator.com' : 'news.ycombinator.com'
+      }</div>
+    </div>
+    <div class="stage">
+      <div class="target"></div>
+      <div class="panel">${args.panelBody}</div>
+    </div>
+  </div>
+  <script>
+    // Stub chrome.runtime so the panel's connect() doesn't throw
+    window.chrome = {
+      runtime: {
+        connect: () => ({
+          onMessage: { addListener: () => {} },
+          onDisconnect: { addListener: () => {} },
+          postMessage: () => {},
+          disconnect: () => {},
+        }),
+        openOptionsPage: () => {},
+      },
+      storage: { local: { get: async () => ({}), set: async () => undefined } },
+    };
+  </script>
+  <script type="module" src="file://${join(EXT_DIST, 'sidepanel.js')}"></script>
+</body></html>`;
+}
+
+function buildOptionsHtml(args: { body: string; css: string }): string {
+  return `<!doctype html>
+<html><head>
+  <meta charset="utf-8">
+  <style>${args.css}</style>
+</head>
+<body>
+  ${args.body}
+  <script>
+    window.chrome = {
+      runtime: { openOptionsPage: () => {} },
+      storage: {
+        local: {
+          get: async () => ({
+            fastBrowserSettings: {
+              provider: 'anthropic',
+              model: 'claude-haiku-4-5',
+              maxSteps: 60,
+              apiKeys: {
+                anthropic: 'sk-ant-•••••••••••••••••••••••••••••••••••',
+                gemini: '',
+                openrouter: '',
+              },
+            },
+          }),
+          set: async () => undefined,
+        },
+      },
+    };
+  </script>
+  <script type="module" src="file://${join(EXT_DIST, 'options.js')}"></script>
+</body></html>`;
+}
+
+// Runs in page context — paints the panel into the requested state by
+// directly setting DOM (since chrome.runtime is stubbed and no real port
+// is connected).
+function applyPanelState(args: {
+  state: PanelState;
+  task: string;
+  steps: MockStep[];
+}): void {
+  const task = document.getElementById('task') as HTMLTextAreaElement;
+  const pill = document.getElementById('status-pill') as HTMLElement;
+  const trace = document.getElementById('trace') as HTMLOListElement;
+  const resultSection = document.getElementById('result-section') as HTMLElement;
+  const resultSummary = document.getElementById('result-summary') as HTMLElement;
+  const resultText = document.getElementById('result-text') as HTMLElement;
+
+  task.value = args.task;
+  const labels = { idle: 'idle', running: 'running', done: 'done' };
+  pill.textContent = labels[args.state];
+  pill.className = `pill ${args.state}`;
+
+  if (args.state === 'idle') return;
+
+  const stepsToShow = args.state === 'done'
+    ? args.steps
+    : args.steps.slice(0, args.steps.length - 1);
+
+  for (const s of stepsToShow) {
+    const li = document.createElement('li');
+    li.className = s.ok ? 'step-ok' : 'step-fail';
+    const tag = s.ok ? '✓' : '✗';
+    const cost = s.costUsd
+      ? `$${s.costUsd.toFixed(6)}`
+      : '';
+    li.innerHTML =
+      `<strong>${s.type}</strong> ${tag} ` +
+      `<span class="step-meta">${s.latencyMs}ms ${cost}</span><br>` +
+      `<span>${s.summary}</span>`;
+    trace.appendChild(li);
+  }
+
+  if (args.state === 'done') {
+    resultSection.hidden = false;
+    resultSummary.textContent =
+      'success • 3 steps • 6.1s • $0.0053';
+    resultText.textContent =
+      'Project Gutenberg — keeps getting better — 813 points';
+  }
+}
+
+function applyOptionsState(): void {
+  // The options.js hydrate() reads from chrome.storage.local which we stubbed;
+  // give it a beat to populate.
+  // No additional action needed — fields populate themselves.
+  void 0;
+}
+
+void main().catch((e: unknown) => {
   console.error(e);
   process.exitCode = 1;
 });
